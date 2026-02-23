@@ -4,23 +4,71 @@ import "../styles/global.css";
 
 const site = Astro.site?.toString() ?? "https://playlisttime.app";
 const canonical = new URL("/", site).toString();
-const title = "Playlist Time - Compare YouTube Playlist Duration at Multiple Speeds";
+
+const title = "Playlist Time — YouTube Playlist Duration & Watch Time Calculator";
 const description =
-  "Analyze multiple YouTube playlists in one table, edit video ranges, and compare watch time at 1x, 1.25x, 1.5x, 1.75x, and custom speed.";
+  "Calculate total YouTube playlist duration, edit video ranges, and compare watch time across multiple playlists at 1x, 1.25x, 1.5x, 1.75x, and custom speed.";
+
+const faq = [
+  {
+    q: "What is Playlist Time?",
+    a: "Playlist Time is a YouTube playlist duration and watch-time calculator. It adds up video lengths in one or more playlists and shows how long they take to watch at different playback speeds."
+  },
+  {
+    q: "How do you calculate YouTube playlist duration?",
+    a: "We fetch the videos in the playlist and sum their durations. The totals are then converted into estimates at 1x, 1.25x, 1.5x, 1.75x, and your custom speed."
+  },
+  {
+    q: "Can I compare multiple playlists at once?",
+    a: "Yes. Paste multiple playlist URLs or IDs and you’ll get one row per playlist plus a combined totals row."
+  },
+  {
+    q: "Can I calculate only part of a playlist (a range of videos)?",
+    a: "Yes. Use Start and End to calculate only a slice of the playlist (for example, videos 20–80). You can set a default range and also override the range per playlist."
+  },
+  {
+    q: "How does playback speed change the total time?",
+    a: "Playback speed is applied mathematically (Total time ÷ Speed). For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x."
+  },
+  {
+    q: "Why might my total differ from what I expect?",
+    a: "Totals can change if a playlist contains unavailable videos (private, deleted, region-blocked) or if the playlist is updated after you analyze it. Small differences can also come from rounding in UI displays."
+  },
+  // {
+  //   q: "Does this work for private or unlisted playlists?",
+  //   a: "Public playlists work best. Private playlists usually can’t be analyzed unless your browser/session has access to the video data."
+  // },
+  {
+    q: "Do you store my playlists or results?",
+    a: "Playlist Time is designed for quick calculations. If anything is saved for convenience, it’s stored locally in your browser (so your list can persist on refresh) rather than being published as a public list."
+  }
+];
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "Playlist Time",
-  url: canonical,
-  applicationCategory: "UtilityApplication",
-  operatingSystem: "Any",
-  description,
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD"
-  }
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      name: "Playlist Time",
+      url: canonical,
+      applicationCategory: "UtilityApplication",
+      operatingSystem: "Any",
+      description,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faq.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a }
+      }))
+    }
+  ]
 };
 ---
 
@@ -44,15 +92,20 @@ const jsonLd = {
       href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+
     <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   </head>
 
   <body class="min-h-screen overflow-x-hidden selection:bg-primary/30">
-    <header class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/95 px-6 py-3 shadow-md backdrop-blur">
+    <header
+      class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/95 px-6 py-3 shadow-md backdrop-blur"
+    >
       <div class="mx-auto flex w-full max-w-[1600px] items-center gap-3">
         <div class="flex size-8 items-center justify-center text-primary">
           <svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 5.8a.8.8 0 0 1 1.23-.67l5.23 3.37a.8.8 0 0 1 0 1.34l-5.23 3.37A.8.8 0 0 1 10 14.54V7.8Z" />
+            <path
+              d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 5.8a.8.8 0 0 1 1.23-.67l5.23 3.37a.8.8 0 0 1 0 1.34l-5.23 3.37A.8.8 0 0 1 10 14.54V7.8Z"
+            />
           </svg>
         </div>
         <span class="text-xl font-bold tracking-tight text-white">Playlist Time</span>
@@ -65,8 +118,8 @@ const jsonLd = {
           <div>
             <h1 class="text-2xl font-bold text-white">Playlist Time</h1>
             <p class="mt-2 max-w-3xl text-sm text-gray-300">
-              Compare total watch time across multiple playlists at several speeds at once, including a global custom speed.
-              Edit ranges per playlist to estimate exactly how long your selected segments take.
+              Calculate YouTube playlist duration and compare watch time across multiple playlists at different playback speeds.
+              Set a start/end range per playlist to estimate exactly how long specific sections take.
             </p>
           </div>
         </div>
@@ -76,46 +129,67 @@ const jsonLd = {
         <App client:idle />
       </section>
 
+      {/* SEO + helpful content (kept collapsible) */}
       <section id="seo-details" class="rounded-xl border border-border-dark bg-surface-dark/80 px-5 py-4">
         <details>
-          <summary class="cursor-pointer text-sm font-semibold uppercase tracking-wide text-primary">How it works and FAQ</summary>
-          <div class="mt-4 grid gap-6 lg:grid-cols-2">
+          <summary class="cursor-pointer text-sm font-semibold uppercase tracking-wide text-primary">
+            How it works + FAQ
+          </summary>
+
+          <div class="mt-4 grid gap-8 lg:grid-cols-2">
             <section>
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">How it works</h2>
-              <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-300">
-                <li>Paste one or many playlist URLs/IDs and click Analyze.</li>
-                <li>Set Default Range Start/End to apply an initial range for newly added playlists.</li>
-                <li>Use the Range pill in each playlist row to fine-tune start/end per playlist.</li>
-                <li>Compare watch time at 1x, 1.25x, 1.5x, 1.75x, and a global Custom speed.</li>
-                <li>Click table headers to sort, then drag rows to override the current order.</li>
-              </ul>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">
+                How it works
+              </h2>
+
+              <p class="mt-3 text-sm text-gray-300">
+                Use Playlist Time to plan study sessions, courses, or binge-watching by converting playlist length into real watch-time
+                estimates at multiple speeds.
+              </p>
+
+              <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-gray-300">
+                <li>
+                  <span class="font-medium text-gray-100">Paste playlist links or IDs</span> — add one or many (new line, comma, or space separated).
+                </li>
+                <li>
+                  <span class="font-medium text-gray-100">Optional: set a Default Range</span> — apply Start/End to newly added playlists (great for large courses).
+                </li>
+                <li>
+                  <span class="font-medium text-gray-100">Click Analyze</span> — we sum video durations and build a comparison table.
+                </li>
+                <li>
+                  <span class="font-medium text-gray-100">Fine-tune per playlist</span> — adjust Start/End in each row to measure only the videos you care about.
+                </li>
+                <li>
+                  <span class="font-medium text-gray-100">Compare speeds instantly</span> — see totals at 1x, 1.25x, 1.5x, 1.75x, and your Custom speed.
+                </li>
+              </ol>
+
+              <p class="mt-4 text-xs text-gray-400">
+                Note: totals can change if videos become unavailable (private/deleted/region-blocked) or if a playlist is updated after analysis.
+              </p>
             </section>
 
             <section>
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">FAQ</h2>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">
+                Frequently asked questions
+              </h2>
+
               <div class="mt-3 space-y-2 text-sm text-gray-300">
+                {faq.map((item) => (
+                  <details class="rounded border border-border-dark bg-black/40 p-3">
+                    <summary class="cursor-pointer font-medium text-gray-100">{item.q}</summary>
+                    <p class="mt-2 text-gray-400">{item.a}</p>
+                  </details>
+                ))}
+
                 <details class="rounded border border-border-dark bg-black/40 p-3">
-                  <summary class="cursor-pointer font-medium text-gray-100">Do you use YouTube playlist view totals?</summary>
+                  <summary class="cursor-pointer font-medium text-gray-100">
+                    What does the Views column represent?
+                  </summary>
                   <p class="mt-2 text-gray-400">
-                    No. The Views column sums video-level views in the playlist, not YouTube's aggregate playlist page views.
-                  </p>
-                </details>
-                <details class="rounded border border-border-dark bg-black/40 p-3">
-                  <summary class="cursor-pointer font-medium text-gray-100">Is the YouTube API key exposed in the browser?</summary>
-                  <p class="mt-2 text-gray-400">
-                    No. Requests go through Cloudflare Pages Functions, and YouTube keys stay in environment variables.
-                  </p>
-                </details>
-                <details class="rounded border border-border-dark bg-black/40 p-3">
-                  <summary class="cursor-pointer font-medium text-gray-100">Will my playlists stay after refresh?</summary>
-                  <p class="mt-2 text-gray-400">
-                    Yes. Playlist rows, selected ranges, sorting, and custom speed are saved locally in your browser.
-                  </p>
-                </details>
-                <details class="rounded border border-border-dark bg-black/40 p-3">
-                  <summary class="cursor-pointer font-medium text-gray-100">How does Custom speed work?</summary>
-                  <p class="mt-2 text-gray-400">
-                    Custom speed applies globally. Changing it updates the Custom column for every playlist and the totals row.
+                    Views are shown as extra context. If available, the number is derived from video-level view counts and summed across the playlist.
+                    Watch time is always calculated from video durations, not from views.
                   </p>
                 </details>
               </div>
@@ -124,6 +198,5 @@ const jsonLd = {
         </details>
       </section>
     </main>
-
   </body>
 </html>
