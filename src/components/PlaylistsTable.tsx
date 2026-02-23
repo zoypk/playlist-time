@@ -7,9 +7,10 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Sigma, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Trash2 } from "lucide-react";
 
 import RangePopover from "./RangePopover";
+import SpeedControl from "./SpeedControl";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
@@ -30,6 +31,7 @@ type PlaylistsTableProps = {
   rows: PlaylistRow[];
   sorting: SortingState;
   customSpeed: number;
+  onCustomSpeedCommit: (value: number) => void;
   onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
   onRangeApply: (rowId: string, start: number | null, end: number | null) => void;
   onRemoveRow: (rowId: string) => void;
@@ -99,6 +101,7 @@ export default function PlaylistsTable({
   rows,
   sorting,
   customSpeed,
+  onCustomSpeedCommit,
   onSortingChange,
   onRangeApply,
   onRemoveRow,
@@ -121,7 +124,7 @@ export default function PlaylistsTable({
       ...SPEED_COLUMNS,
       {
         id: "speed_custom",
-        label: `Custom (${customSpeed.toFixed(2)}x)`,
+        label: `Custom`,
         speed: customSpeed
       }
     ];
@@ -137,12 +140,12 @@ export default function PlaylistsTable({
           return (
             <div className="flex items-center justify-center text-gray-500">
               <div className="flex flex-col items-center">
-                <GripVertical className="size-4 drag-handle text-gray-300" />
+                <GripVertical className="hidden size-4 drag-handle text-gray-300 md:block" />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="mt-1 size-6 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+                  className="size-6 text-gray-500 hover:bg-red-500/10 hover:text-red-300 md:mt-1"
                   onClick={() => onRemoveRow(row.original.id)}
                   aria-label="Remove playlist"
                   title="Remove playlist"
@@ -162,6 +165,7 @@ export default function PlaylistsTable({
         accessorFn: (row) => row.data?.title ?? row.input,
         cell: ({ row }) => {
           const item = row.original;
+          const metrics = metricsById.get(item.id);
 
           if (item.status === "loading") {
             return (
@@ -188,8 +192,8 @@ export default function PlaylistsTable({
           }
 
           return (
-            <div className="flex w-full min-w-0 items-center gap-4">
-              <div className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60">
+            <div className="flex w-full min-w-0 items-center gap-4 select-none">
+              <div className="hidden h-10 w-16 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60 md:block">
                 {item.data?.thumbnailUrl ? (
                   <img
                     src={item.data.thumbnailUrl}
@@ -203,43 +207,35 @@ export default function PlaylistsTable({
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary">{item.data?.title || item.playlistId}</h3>
+                <h3 className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary">
+                  <a
+                    href={item.playlistId ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}` : undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-primary"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {item.data?.title || item.playlistId}
+                  </a>
+                </h3>
                 <p className="truncate text-xs text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
                 <p className="mt-1 text-[11px] text-gray-600">{item.loadingLabel ?? ""}</p>
+                {metrics && item.status === "success" && (
+                  <div className="mt-2">
+                    <RangePopover
+                      disabled={item.status !== "success"}
+                      range={metrics.range}
+                      isOpen={openRangeId === item.id}
+                      onOpenChange={(open) => setOpenRangeId(open ? item.id : null)}
+                      onApply={(start, end) => {
+                        onRangeApply(item.id, start, end);
+                        setOpenRangeId(null);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
-          );
-        }
-      },
-      {
-        id: "range",
-        header: ({ column }) => (
-          <SortHeader
-            label="Range"
-            canSort={column.getCanSort()}
-            sorted={column.getIsSorted()}
-            title="Sort by selected video count"
-          />
-        ),
-        accessorFn: (row) => metricsById.get(row.id)?.range.selectedCount ?? 0,
-        cell: ({ row }) => {
-          const item = row.original;
-          const metrics = metricsById.get(item.id);
-
-          if (!metrics || item.status === "loading") return <Skeleton className="h-6 w-20" />;
-          if (item.status === "error") return <span className="text-xs text-gray-600">-</span>;
-
-          return (
-            <RangePopover
-              disabled={item.status !== "success"}
-              range={metrics.range}
-              isOpen={openRangeId === item.id}
-              onOpenChange={(open) => setOpenRangeId(open ? item.id : null)}
-              onApply={(start, end) => {
-                onRangeApply(item.id, start, end);
-                setOpenRangeId(null);
-              }}
-            />
           );
         }
       },
@@ -272,7 +268,6 @@ export default function PlaylistsTable({
           <SortHeader
             label={
               <span className="inline-flex items-center gap-1">
-                <Sigma className="size-3.5" />
                 Avg length
               </span>
             }
@@ -293,15 +288,24 @@ export default function PlaylistsTable({
     for (const speedColumn of speedColumns) {
       baseColumns.push({
         id: speedColumn.id,
-        header: ({ column }) => (
-          <SortHeader
-            label={speedColumn.label}
-            canSort={column.getCanSort()}
-            sorted={column.getIsSorted()}
-            primary={speedColumn.primary}
-            title={speedColumn.speed === 1 ? "Baseline watch time" : "Time at this speed"}
-          />
-        ),
+        header:
+          speedColumn.id === "speed_custom"
+            ? () => (
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-300">{speedColumn.label}</div>
+                <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
+              </div>
+            )
+            : ({ column }) => (
+              <SortHeader
+                label={speedColumn.label}
+                canSort={column.getCanSort()}
+                sorted={column.getIsSorted()}
+                primary={speedColumn.primary}
+                title={speedColumn.speed === 1 ? "Baseline watch time" : "Time at this speed"}
+              />
+            ),
+        enableSorting: speedColumn.id !== "speed_custom",
         accessorFn: (row) => {
           const metrics = metricsById.get(row.id);
           const selected = metrics?.selectedDurationSec ?? 0;
@@ -349,7 +353,7 @@ export default function PlaylistsTable({
     });
 
     return baseColumns;
-  }, [customSpeed, metricsById, onRangeApply, onRemoveRow, openRangeId, speedColumns]);
+  }, [customSpeed, metricsById, onCustomSpeedCommit, onRangeApply, onRemoveRow, openRangeId, speedColumns]);
 
   const table = useReactTable({
     data: rows,
@@ -398,7 +402,7 @@ export default function PlaylistsTable({
   return (
     <TooltipProvider>
       <div className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl">
-        <div className="playlist-grid sticky top-0 z-20 min-w-[1220px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <div className="playlist-grid sticky top-0 z-20 min-w-[1080px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
           {table.getHeaderGroups().map((headerGroup) =>
             headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
@@ -415,7 +419,7 @@ export default function PlaylistsTable({
           )}
         </div>
 
-        <div className="min-w-[1220px] divide-y divide-border-dark bg-black">
+        <div className="min-w-[1080px] divide-y divide-border-dark bg-black">
           {table.getRowModel().rows.map((row) => {
             const draggable = true;
             return (
@@ -442,7 +446,12 @@ export default function PlaylistsTable({
                 onDragEnd={() => setDraggedId(null)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <div key={cell.id} className={`body-cell ${cell.column.id === "speed_1" ? "bg-primary/5" : ""}`}>
+                  <div
+                    key={cell.id}
+                    className={`body-cell ${cell.column.id === "speed_1" ? "bg-primary/5" : ""} ${
+                      cell.column.id === "playlist" ? "drag-handle" : ""
+                    }`}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </div>
                 ))}
@@ -451,17 +460,14 @@ export default function PlaylistsTable({
           })}
         </div>
 
-        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1220px]">
+        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1080px]">
           <div className="footer-cell" />
-          <div className="footer-cell text-sm font-bold uppercase tracking-wider text-primary">Total ({totals.successfulPlaylists} Playlists)</div>
-        <div className="footer-cell" />
-        <div className="footer-cell" />
-        <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
-        {speedColumns.map((speedColumn) => {
+          <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300">Total</div>
+          <div className="footer-cell" />
+          <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
+          {speedColumns.map((speedColumn) => {
             const value = totals.totalSelectedDuration / speedColumn.speed;
-            const sharedClass = speedColumn.primary
-              ? "footer-cell bg-primary/10 font-mono text-base font-bold text-primary"
-              : "footer-cell font-mono text-sm font-medium text-primary";
+            const sharedClass = "footer-cell font-mono text-sm font-medium text-gray-300";
 
             return (
               <Tooltip key={speedColumn.id}>
@@ -472,9 +478,9 @@ export default function PlaylistsTable({
               </Tooltip>
             );
           })}
-        <div className="footer-cell" />
+          <div className="footer-cell" />
+        </div>
       </div>
-    </div>
-  </TooltipProvider>
+    </TooltipProvider>
   );
 }

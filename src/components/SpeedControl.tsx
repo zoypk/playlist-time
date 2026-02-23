@@ -6,12 +6,13 @@ import { clamp } from "./utils";
 type SpeedControlProps = {
   value: number;
   onCommit: (value: number) => void;
+  compact?: boolean;
 };
 
 /**
  * Custom speed editor with native up/down arrows and commit-on-blur/enter behavior.
  */
-export default function SpeedControl({ value, onCommit }: SpeedControlProps) {
+export default function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
   const [draft, setDraft] = React.useState(value.toFixed(2));
 
   React.useEffect(() => {
@@ -27,7 +28,13 @@ export default function SpeedControl({ value, onCommit }: SpeedControlProps) {
   );
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border-dark bg-surface-darker/90 px-2 py-1">
+    <div
+      className={
+        compact
+          ? "flex items-center gap-1"
+          : "flex items-center gap-2 rounded-md border border-border-dark bg-surface-darker/90 px-2 py-1"
+      }
+    >
       <div className="flex items-center gap-1 rounded border border-border-dark bg-black px-2 py-1">
         <Input
           type="number"
@@ -50,7 +57,7 @@ export default function SpeedControl({ value, onCommit }: SpeedControlProps) {
         <span className="text-[11px] text-gray-500">x</span>
       </div>
 
-      <span className="hidden text-[10px] uppercase tracking-wide text-gray-500 lg:inline">0.1x-3.0x</span>
+      {!compact && <span className="hidden text-[10px] uppercase tracking-wide text-gray-500 lg:inline">0.1x-3.0x</span>}
     </div>
   );
 }

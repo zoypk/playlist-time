@@ -4,7 +4,6 @@ import type { SortingState } from "@tanstack/react-table";
 import { BarChart3, WandSparkles } from "lucide-react";
 
 import PlaylistsTable from "./PlaylistsTable";
-import SpeedControl from "./SpeedControl";
 import type {
   BatchPlaylistResponse,
   PersistedState,
@@ -528,22 +527,21 @@ function AppInner() {
 
       {rows.length > 0 && (
         <section className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-xs uppercase tracking-wide text-gray-500">Click headers to sort. Drag rows to override order.</div>
+          {/* <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs uppercase tracking-wide text-gray-500">Click headers to sort. On desktop, drag rows to override order.</div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs uppercase tracking-wide text-gray-500">Custom speed</span>
-              <SpeedControl value={customSpeed} onCommit={setCustomSpeed} />
               <Button type="button" variant="outline" size="sm" className="h-8" onClick={refreshAllRows}>
                 Refresh data
               </Button>
             </div>
-          </div>
+          </div> */}
 
           <PlaylistsTable
             rows={rows}
             sorting={sorting}
             customSpeed={customSpeed}
+            onCustomSpeedCommit={setCustomSpeed}
             onSortingChange={setSorting}
             onRangeApply={(rowId, start, end) => {
               setRows((prev) =>

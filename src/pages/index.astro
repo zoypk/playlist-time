@@ -60,7 +60,11 @@ const jsonLd = {
     </header>
 
     <main class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 p-6">
-      <section id="seo-intro" class="rounded-xl border border-border-dark bg-surface-dark">
+      <section class="order-1 md:order-2">
+        <App client:idle />
+      </section>
+
+      <section id="seo-intro" class="order-2 rounded-xl border border-border-dark bg-surface-dark md:order-1">
         <div class="flex items-start justify-between gap-4 border-b border-border-dark px-5 py-4">
           <div>
             <h1 class="text-2xl font-bold text-white">Playlist Time</h1>
@@ -78,14 +82,37 @@ const jsonLd = {
           </button>
         </div>
 
-        <div class="grid gap-6 px-5 py-4 lg:grid-cols-2">
+        <details class="px-5 py-4 md:hidden">
+          <summary class="cursor-pointer text-sm font-semibold uppercase tracking-wide text-primary">How it works and FAQ</summary>
+          <div class="mt-3 space-y-4">
+            <section>
+              <ul class="list-disc space-y-2 pl-5 text-sm text-gray-300">
+                <li>Paste multiple playlist URLs or IDs at once.</li>
+                <li>Set default range start/end, then adjust each playlist range independently.</li>
+                <li>Compare time at 0.5x, 1x, 1.25x, 1.5x, 2x, and custom speed.</li>
+              </ul>
+            </section>
+            <section class="space-y-2 text-sm text-gray-300">
+              <details class="rounded border border-border-dark bg-black/40 p-3">
+                <summary class="cursor-pointer font-medium text-gray-100">Do you use YouTube playlist view totals?</summary>
+                <p class="mt-2 text-gray-400">No. Views are summed from video-level statistics via YouTube Data API v3.</p>
+              </details>
+              <details class="rounded border border-border-dark bg-black/40 p-3">
+                <summary class="cursor-pointer font-medium text-gray-100">Is my API key exposed in the browser?</summary>
+                <p class="mt-2 text-gray-400">No. Requests run through Cloudflare Functions and keys remain server-side.</p>
+              </details>
+            </section>
+          </div>
+        </details>
+
+        <div class="hidden gap-6 px-5 py-4 md:grid lg:grid-cols-2">
           <section>
             <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">How it works</h2>
             <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-300">
               <li>Paste multiple playlist URLs or IDs at once.</li>
               <li>Set default range start/end, then adjust each playlist range independently.</li>
               <li>Use the table to compare time at 0.5x, 1x, 1.25x, 1.5x, 2x, and custom speed.</li>
-              <li>Switch between Sorted and Manual order to choose sorting or drag reordering.</li>
+              <li>Click any column header to sort, then drag rows anytime to override that order.</li>
             </ul>
           </section>
 
@@ -114,8 +141,6 @@ const jsonLd = {
           </section>
         </div>
       </section>
-
-      <App client:idle />
     </main>
 
     <script is:inline>
