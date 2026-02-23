@@ -398,7 +398,7 @@ export default function PlaylistsTable({
   return (
     <TooltipProvider>
       <div className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl">
-        <div className="playlist-grid sticky top-0 z-20 min-w-[1480px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <div className="playlist-grid sticky top-0 z-20 min-w-[1220px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
           {table.getHeaderGroups().map((headerGroup) =>
             headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
@@ -415,7 +415,7 @@ export default function PlaylistsTable({
           )}
         </div>
 
-        <div className="min-w-[1480px] divide-y divide-border-dark bg-black">
+        <div className="min-w-[1220px] divide-y divide-border-dark bg-black">
           {table.getRowModel().rows.map((row) => {
             const draggable = true;
             return (
@@ -451,7 +451,7 @@ export default function PlaylistsTable({
           })}
         </div>
 
-        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1480px]">
+        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1220px]">
           <div className="footer-cell" />
           <div className="footer-cell text-sm font-bold uppercase tracking-wider text-primary">Total ({totals.successfulPlaylists} Playlists)</div>
         <div className="footer-cell" />

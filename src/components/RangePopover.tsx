@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -69,7 +69,6 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
               : `Selected ${range.selectedCount} of ${range.totalVideos} videos`
           }
         >
-          <SlidersHorizontal className="mr-2 size-3.5" />
           {getRangePillLabel(range)}
         </Button>
       </PopoverTrigger>
