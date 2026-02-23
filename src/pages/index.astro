@@ -1,27 +1,143 @@
 ---
 import App from "../components/App";
-const title = "YouTube Playlist Analyzer";
-const description = "Analyze a YouTube playlist: total duration, views/day, speed watch time, and per-video breakdown.";
+import "../styles/global.css";
+
+const site = Astro.site?.toString() ?? "https://playlisttime.app";
+const canonical = new URL("/", site).toString();
+const title = "Playlist Time - Compare YouTube Playlist Duration at Multiple Speeds";
+const description =
+  "Analyze multiple YouTube playlists in one table, edit video ranges, and compare watch time at 0.5x, 1x, 1.25x, 1.5x, 2x, and custom speed.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Playlist Time",
+  url: canonical,
+  applicationCategory: "UtilityApplication",
+  operatingSystem: "Any",
+  description,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD"
+  }
+};
 ---
 
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="Playlist Time" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   </head>
 
-  <body class="min-h-screen">
-    <main class="mx-auto max-w-6xl p-4">
-      <h1 class="text-2xl font-bold">{title}</h1>
-      <p class="mt-2 text-sm opacity-80">{description}</p>
-
-      <div class="mt-6">
-        <App client:load />
+  <body class="min-h-screen overflow-x-hidden selection:bg-primary/30">
+    <header class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/95 px-6 py-3 shadow-md backdrop-blur">
+      <div class="mx-auto flex w-full max-w-[1600px] items-center gap-3">
+        <div class="flex size-8 items-center justify-center text-primary">
+          <svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 5.8a.8.8 0 0 1 1.23-.67l5.23 3.37a.8.8 0 0 1 0 1.34l-5.23 3.37A.8.8 0 0 1 10 14.54V7.8Z" />
+          </svg>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-white">Playlist Time</span>
       </div>
+    </header>
+
+    <main class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 p-6">
+      <section id="seo-intro" class="rounded-xl border border-border-dark bg-surface-dark">
+        <div class="flex items-start justify-between gap-4 border-b border-border-dark px-5 py-4">
+          <div>
+            <h1 class="text-2xl font-bold text-white">Playlist Time</h1>
+            <p class="mt-2 max-w-3xl text-sm text-gray-300">
+              Compare total watch time across multiple playlists at several speeds at once, including a global custom speed.
+              Edit ranges per playlist to estimate exactly how long your selected segments take.
+            </p>
+          </div>
+          <button
+            type="button"
+            id="dismiss-intro"
+            class="rounded border border-border-dark bg-black/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-300 transition hover:border-gray-500 hover:text-white"
+          >
+            Hide intro
+          </button>
+        </div>
+
+        <div class="grid gap-6 px-5 py-4 lg:grid-cols-2">
+          <section>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">How it works</h2>
+            <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-300">
+              <li>Paste multiple playlist URLs or IDs at once.</li>
+              <li>Set default range start/end, then adjust each playlist range independently.</li>
+              <li>Use the table to compare time at 0.5x, 1x, 1.25x, 1.5x, 2x, and custom speed.</li>
+              <li>Switch between Sorted and Manual order to choose sorting or drag reordering.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-primary">FAQ</h2>
+            <div class="mt-3 space-y-2 text-sm text-gray-300">
+              <details class="rounded border border-border-dark bg-black/40 p-3">
+                <summary class="cursor-pointer font-medium text-gray-100">Do you use YouTube playlist view totals?</summary>
+                <p class="mt-2 text-gray-400">
+                  No. Views are the sum of video-level view counts returned by YouTube Data API v3.
+                </p>
+              </details>
+              <details class="rounded border border-border-dark bg-black/40 p-3">
+                <summary class="cursor-pointer font-medium text-gray-100">Is my API key exposed in the browser?</summary>
+                <p class="mt-2 text-gray-400">
+                  No. Requests go through Cloudflare Pages Functions, and YouTube keys stay in environment variables.
+                </p>
+              </details>
+              <details class="rounded border border-border-dark bg-black/40 p-3">
+                <summary class="cursor-pointer font-medium text-gray-100">Can I keep my playlist list after refresh?</summary>
+                <p class="mt-2 text-gray-400">
+                  Yes. Playlist rows, ranges, sort mode, and custom speed are stored locally in your browser.
+                </p>
+              </details>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <App client:idle />
     </main>
+
+    <script is:inline>
+      (() => {
+        const key = "playlist-time:intro-hidden";
+        const intro = document.getElementById("seo-intro");
+        const dismiss = document.getElementById("dismiss-intro");
+        if (!intro || !dismiss) return;
+
+        if (localStorage.getItem(key) === "1") {
+          intro.setAttribute("hidden", "true");
+        }
+
+        dismiss.addEventListener("click", () => {
+          intro.setAttribute("hidden", "true");
+          localStorage.setItem(key, "1");
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -22,14 +22,16 @@ type PlaylistMetaResponse = {
       title?: string;
       channelTitle?: string;
       publishedAt?: string;
+      description?: string;
       thumbnails?: {
-        high?: { url?: string };
-        medium?: { url?: string };
         default?: { url?: string };
       };
     };
     contentDetails?: {
       itemCount?: number;
+    };
+    player?: {
+      embedHtml?: string;
     };
     status?: {
       privacyStatus?: string;
@@ -42,6 +44,8 @@ type PlaylistItemsResponse = {
   items?: Array<{
     contentDetails?: {
       videoId?: string;
+      startAt?: string;
+      endAt?: string;
     };
     snippet?: {
       publishedAt?: string;
@@ -127,6 +131,32 @@ function parseIsoDurationToSeconds(value: string) {
   const seconds = Number(match[4] || 0);
 
   return days * 86_400 + hours * 3600 + minutes * 60 + seconds;
+}
+
+function parseClipTimeToSeconds(value?: string) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    const sec = Number.parseInt(trimmed, 10);
+    return Number.isFinite(sec) ? sec : null;
+  }
+
+  if (trimmed.includes("T") || trimmed.startsWith("P")) {
+    return parseIsoDurationToSeconds(trimmed);
+  }
+
+  const parts = trimmed.split(":").map((entry) => Number.parseInt(entry, 10));
+  if (parts.some((entry) => !Number.isFinite(entry))) return null;
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  return null;
 }
 
 async function parseYoutubeError(response: Response) {
@@ -260,7 +290,11 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
 
   let pageToken = "";
   let hasNextPage = true;
-  const orderedVideoIds: Array<string | null> = [];
+  const orderedItems: Array<{
+    videoId: string | null;
+    startAt?: string;
+    endAt?: string;
+  }> = [];
   let lastAddedAt: string | null = null;
 
   while (hasNextPage) {
@@ -268,7 +302,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
       "https://www.googleapis.com/youtube/v3/playlistItems" +
       `?part=contentDetails,snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50` +
       (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "") +
-      "&fields=nextPageToken,items(contentDetails(videoId),snippet(publishedAt))";
+      "&fields=nextPageToken,items(contentDetails(videoId,startAt,endAt),snippet(publishedAt))";
 
     const playlistItemsResponse = await youtubeFetchWithRotation(keys, playlistItemsEndpoint);
     if (!playlistItemsResponse.ok) return toUserFacingError(playlistItemsResponse);
@@ -277,7 +311,11 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     const items = itemsJson.items || [];
 
     for (const item of items) {
-      orderedVideoIds.push(item.contentDetails?.videoId || null);
+      orderedItems.push({
+        videoId: item.contentDetails?.videoId || null,
+        startAt: item.contentDetails?.startAt,
+        endAt: item.contentDetails?.endAt,
+      });
 
       const addedAt = item.snippet?.publishedAt || null;
       if (!addedAt) continue;
@@ -290,7 +328,13 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     hasNextPage = Boolean(pageToken);
   }
 
-  const uniqueVideoIds = Array.from(new Set(orderedVideoIds.filter((entry): entry is string => Boolean(entry))));
+  const uniqueVideoIds = Array.from(
+    new Set(
+      orderedItems
+        .map((entry) => entry.videoId)
+        .filter((entry): entry is string => Boolean(entry)),
+    ),
+  );
   const videoMeta = new Map<string, { durationSec: number; views: number }>();
 
   for (let i = 0; i < uniqueVideoIds.length; i += 50) {
@@ -319,7 +363,8 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   let totalVideoViewsSum = 0;
   let unavailableVideoCount = 0;
 
-  for (const videoId of orderedVideoIds) {
+  for (const item of orderedItems) {
+    const videoId = item.videoId;
     if (!videoId) {
       orderedDurationsSec.push(0);
       unavailableVideoCount += 1;
@@ -333,7 +378,22 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
       continue;
     }
 
-    orderedDurationsSec.push(video.durationSec);
+    const startSec = parseClipTimeToSeconds(item.startAt);
+    const endSec = parseClipTimeToSeconds(item.endAt);
+
+    let effectiveDuration = video.durationSec;
+    if (startSec != null && endSec != null && endSec > startSec) {
+      effectiveDuration = Math.max(
+        0,
+        Math.min(video.durationSec, endSec) - startSec,
+      );
+    } else if (startSec != null) {
+      effectiveDuration = Math.max(0, video.durationSec - startSec);
+    } else if (endSec != null) {
+      effectiveDuration = Math.max(0, Math.min(video.durationSec, endSec));
+    }
+
+    orderedDurationsSec.push(effectiveDuration);
     totalVideoViewsSum += video.views;
   }
 
@@ -346,11 +406,12 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     thumbnailUrl,
     publishedAt,
     lastAddedAt,
-    totalVideos: orderedVideoIds.length || playlistMeta.contentDetails?.itemCount || 0,
+    totalVideos:
+      orderedItems.length || playlistMeta.contentDetails?.itemCount || 0,
     totalDurationSec,
     totalVideoViewsSum,
     orderedDurationsSec,
-    unavailableVideoCount
+    unavailableVideoCount,
   };
 
   const response = json(body, 200, {

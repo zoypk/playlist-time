@@ -1,196 +1,445 @@
 import * as React from "react";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import type { SortingState } from "@tanstack/react-table";
+import { BarChart3, WandSparkles } from "lucide-react";
 
-type ApiItem = {
-    videoId: string;
-    title: string;
-    durationSec: number;
-    views: number | null;
-    publishedAt: string | null;
-};
+import PlaylistsTable, { reorderRowsByKeyboard } from "./PlaylistsTable";
+import SpeedControl from "./SpeedControl";
+import type { OrderMode, PersistedState, PlaylistApiDto, PlaylistRow } from "./types";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader } from "./ui/card";
+import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
+import { Separator } from "./ui/separator";
+import { Textarea } from "./ui/textarea";
+import {
+  classifyRowError,
+  createRowId,
+  isValidPlaylistId,
+  normalizeRangeForTotal,
+  parsePlaylistInput,
+  reorderByIds,
+  toNullablePositiveInt,
+  tryExtractPlaylistId
+} from "./utils";
 
-type ApiResponse = {
-    playlistId: string;
-    playlistTitle: string | null;
-    channelTitle: string | null;
-    totalVideos: number;
-    totalDurationSec: number;
-    items: ApiItem[];
-};
+const STORAGE_KEY = "playlist-time:v1";
+const DEFAULT_SORTING: SortingState = [{ id: "speed_1", desc: true }];
 
-const qc = new QueryClient();
+class PlaylistApiError extends Error {
+  status: number;
 
-function parsePlaylistId(input: string) {
-    // Accept playlist URL or raw ID
-    try {
-        const u = new URL(input);
-        return u.searchParams.get("list") || input.trim();
-    } catch {
-        return input.trim();
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "PlaylistApiError";
+    this.status = status;
+  }
+}
+
+const API_BASE = (import.meta.env.PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+
+async function fetchPlaylist(playlistId: string): Promise<PlaylistApiDto> {
+  const response = await fetch(`${API_BASE}/api/playlist?list=${encodeURIComponent(playlistId)}`);
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    let message = "Failed to fetch playlist";
+    if (contentType.includes("application/json")) {
+      try {
+        const json = (await response.json()) as { error?: string };
+        message = json.error ?? message;
+      } catch {
+        // Ignore JSON parse failures.
+      }
+    } else {
+      const text = (await response.text()).trim();
+      if (text) message = text;
     }
+
+    throw new PlaylistApiError(message, response.status);
+  }
+
+  return (await response.json()) as PlaylistApiDto;
 }
 
-function formatDuration(totalSec: number) {
-    const sec = Math.max(0, Math.floor(totalSec));
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+function getFriendlyError(type: PlaylistRow["errorType"], fallback?: string) {
+  if (type === "invalid") return "Invalid playlist URL or ID.";
+  if (type === "unavailable") return "Playlist is private, deleted, or unavailable.";
+  if (type === "quota") return "YouTube API quota exceeded. Try again in a bit.";
+  if (type === "network") return "Network/server error while fetching playlist.";
+  return fallback || "Unexpected error while loading this playlist.";
 }
 
-function Dashboard() {
-    const [text, setText] = React.useState("");
-    const [playlistId, setPlaylistId] = React.useState<string | null>(null);
-    const [speed, setSpeed] = React.useState(1);
+function AppInner() {
+  const queryClient = useQueryClient();
 
-    const q = useQuery({
-        queryKey: ["playlist", playlistId],
-        enabled: !!playlistId,
-        queryFn: async (): Promise<ApiResponse> => {
-            const r = await fetch(`/api/playlist?list=${encodeURIComponent(playlistId!)}`);
-            if (!r.ok) throw new Error(await r.text());
-            return r.json();
-        },
-        staleTime: 1000 * 60 * 10, // 10 min
-    });
+  const [inputText, setInputText] = React.useState("");
+  const [rows, setRows] = React.useState<PlaylistRow[]>([]);
+  const [defaultRangeStart, setDefaultRangeStart] = React.useState<number | null>(null);
+  const [defaultRangeEnd, setDefaultRangeEnd] = React.useState<number | null>(null);
+  const [applyToAll, setApplyToAll] = React.useState(true);
+  const [customSpeed, setCustomSpeed] = React.useState(2.5);
+  const [orderMode, setOrderMode] = React.useState<OrderMode>("sorted");
+  const [sorting, setSorting] = React.useState<SortingState>(DEFAULT_SORTING);
 
-    const columns = React.useMemo<ColumnDef<ApiItem>[]>(
-        () => [
-            { header: "#", cell: (ctx) => ctx.row.index + 1 },
-            { header: "Title", accessorKey: "title" },
-            {
-                header: "Duration",
-                accessorKey: "durationSec",
-                cell: (ctx) => formatDuration(ctx.getValue<number>()),
-            },
-            {
-                header: "Views",
-                accessorKey: "views",
-                cell: (ctx) => {
-                    const v = ctx.getValue<number | null>();
-                    return v == null ? "—" : v.toLocaleString();
-                },
-            },
-            {
-                header: "Published",
-                accessorKey: "publishedAt",
-                cell: (ctx) => {
-                    const d = ctx.getValue<string | null>();
-                    return d ? new Date(d).toLocaleDateString() : "—";
-                },
-            },
-        ],
-        []
-    );
+  const visibleOrderRef = React.useRef<string[]>([]);
 
-    const table = useReactTable({
-        data: q.data?.items ?? [],
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    });
+  const hydrateRow = React.useCallback(
+    async (rowId: string, playlistId: string) => {
+      setRows((prev) =>
+        prev.map((entry) =>
+          entry.id === rowId ? { ...entry, status: "loading", loadingLabel: "Fetching..." } : entry
+        )
+      );
 
-    const total = q.data?.totalDurationSec ?? 0;
-    const atSpeed = speed > 0 ? total / speed : total;
+      try {
+        const data = await queryClient.fetchQuery({
+          queryKey: ["playlist", playlistId],
+          queryFn: () => fetchPlaylist(playlistId),
+          staleTime: 1000 * 60 * 60 * 6,
+          gcTime: 1000 * 60 * 60 * 12
+        });
 
-    return (
-        <div className="space-y-4">
-            <form
-                className="flex flex-col gap-2 sm:flex-row"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    const id = parsePlaylistId(text);
-                    setPlaylistId(id || null);
-                }}
-            >
-                <input
-                    className="w-full rounded border px-3 py-2"
-                    placeholder="Paste playlist URL or ID (…?list=PLxxxx)"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
+        setRows((prev) =>
+          prev.map((entry) =>
+            entry.id === rowId ? { ...entry, status: "loading", loadingLabel: "Calculating..." } : entry
+          )
+        );
+
+        await Promise.resolve();
+
+        setRows((prev) =>
+          prev.map((entry) => {
+            if (entry.id !== rowId) return entry;
+            const normalizedRange = normalizeRangeForTotal(
+              entry.rangeStart,
+              entry.rangeEnd,
+              data.orderedDurationsSec.length
+            );
+            return {
+              ...entry,
+              status: "success",
+              loadingLabel: undefined,
+              data,
+              errorType: undefined,
+              errorMessage: undefined,
+              rangeStart: normalizedRange.rangeStart,
+              rangeEnd: normalizedRange.rangeEnd
+            };
+          })
+        );
+      } catch (error) {
+        const status = error instanceof PlaylistApiError ? error.status : 0;
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const errorType = classifyRowError(status, message);
+
+        setRows((prev) =>
+          prev.map((entry) =>
+            entry.id === rowId
+              ? {
+                  ...entry,
+                  status: "error",
+                  loadingLabel: undefined,
+                  data: undefined,
+                  errorType,
+                  errorMessage: getFriendlyError(errorType, message)
+                }
+              : entry
+          )
+        );
+      }
+    },
+    [queryClient]
+  );
+
+  React.useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as PersistedState;
+      if (parsed.version !== 1) return;
+
+      setOrderMode(parsed.orderMode ?? "sorted");
+      setSorting(parsed.sorting?.length ? parsed.sorting : DEFAULT_SORTING);
+      setDefaultRangeStart(parsed.defaultRangeStart ?? null);
+      setDefaultRangeEnd(parsed.defaultRangeEnd ?? null);
+      setApplyToAll(parsed.applyToAll ?? true);
+      setCustomSpeed(typeof parsed.customSpeed === "number" ? parsed.customSpeed : 2.5);
+
+      if (!Array.isArray(parsed.playlists) || !parsed.playlists.length) {
+        return;
+      }
+
+      const restoredRows: PlaylistRow[] = parsed.playlists.map((entry) => ({
+        id: createRowId(),
+        input: entry.input || entry.playlistId,
+        playlistId: entry.playlistId,
+        status: "loading",
+        loadingLabel: "Fetching...",
+        rangeStart: entry.rangeStart,
+        rangeEnd: entry.rangeEnd
+      }));
+
+      setRows(restoredRows);
+      for (const row of restoredRows) {
+        void hydrateRow(row.id, row.playlistId as string);
+      }
+    } catch {
+      // Ignore invalid persisted state.
+    }
+  }, [hydrateRow]);
+
+  React.useEffect(() => {
+    const payload: PersistedState = {
+      version: 1,
+      orderMode,
+      sorting,
+      defaultRangeStart,
+      defaultRangeEnd,
+      applyToAll,
+      customSpeed,
+      playlists: rows
+        .filter((row) => Boolean(row.playlistId))
+        .map((row) => ({
+          playlistId: row.playlistId as string,
+          input: row.input,
+          rangeStart: row.rangeStart,
+          rangeEnd: row.rangeEnd
+        }))
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }, [applyToAll, customSpeed, defaultRangeEnd, defaultRangeStart, orderMode, rows, sorting]);
+
+  const analyzeInput = React.useCallback(() => {
+    const tokens = parsePlaylistInput(inputText);
+    if (!tokens.length) return;
+
+    const newRows: PlaylistRow[] = [];
+    const validRows: Array<{ rowId: string; playlistId: string }> = [];
+
+    for (const token of tokens) {
+      const maybeId = tryExtractPlaylistId(token);
+      const rowId = createRowId();
+
+      if (!maybeId || !isValidPlaylistId(maybeId)) {
+        newRows.push({
+          id: rowId,
+          input: token,
+          playlistId: null,
+          status: "error",
+          errorType: "invalid",
+          errorMessage: "Invalid playlist URL or ID.",
+          rangeStart: null,
+          rangeEnd: null
+        });
+        continue;
+      }
+
+      newRows.push({
+        id: rowId,
+        input: token,
+        playlistId: maybeId,
+        status: "loading",
+        loadingLabel: "Fetching...",
+        rangeStart: applyToAll ? defaultRangeStart : null,
+        rangeEnd: applyToAll ? defaultRangeEnd : null
+      });
+
+      validRows.push({ rowId, playlistId: maybeId });
+    }
+
+    setRows((prev) => [...prev, ...newRows]);
+    setInputText("");
+
+    for (const row of validRows) {
+      void hydrateRow(row.rowId, row.playlistId);
+    }
+  }, [applyToAll, defaultRangeEnd, defaultRangeStart, hydrateRow, inputText]);
+
+  const toggleOrderMode = (nextMode: OrderMode) => {
+    if (nextMode === orderMode) return;
+
+    if (nextMode === "manual") {
+      setRows((prev) => reorderByIds(prev, visibleOrderRef.current));
+      setSorting([]);
+      setOrderMode("manual");
+      return;
+    }
+
+    setOrderMode("sorted");
+    setSorting((prev) => (prev.length ? prev : DEFAULT_SORTING));
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <Textarea
+            value={inputText}
+            onChange={(event) => setInputText(event.target.value)}
+            placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
+            className="h-24 resize-none font-mono leading-relaxed"
+          />
+        </CardHeader>
+
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 bg-surface-dark p-3">
+          <div className="flex flex-wrap items-center gap-4 px-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Default range</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Start"
+                  value={defaultRangeStart ?? ""}
+                  onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
+                  className="h-7 w-16 px-2 py-1 text-center text-xs"
                 />
-                <button className="rounded border px-3 py-2">Analyze</button>
-            </form>
-
-            <div className="flex items-center gap-3">
-                <label className="text-sm">Speed</label>
-                <select
-                    className="rounded border px-2 py-1"
-                    value={speed}
-                    onChange={(e) => setSpeed(Number(e.target.value))}
-                >
-                    {[0.5, 1, 1.25, 1.5, 1.75, 2].map((v) => (
-                        <option key={v} value={v}>
-                            {v}x
-                        </option>
-                    ))}
-                </select>
+                <span className="text-gray-600">-</span>
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="End"
+                  value={defaultRangeEnd ?? ""}
+                  onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
+                  className="h-7 w-16 px-2 py-1 text-center text-xs"
+                />
+              </div>
             </div>
 
-            {q.isFetching && <div className="text-sm opacity-80">Loading…</div>}
-            {q.error && (
-                <pre className="rounded border p-3 text-sm overflow-auto">
-                    {String(q.error)}
-                </pre>
-            )}
+            <Separator orientation="vertical" className="mx-1" />
 
-            {q.data && (
-                <div className="rounded border p-3">
-                    <div className="font-semibold">
-                        {q.data.playlistTitle ?? q.data.playlistId}
-                    </div>
-                    <div className="text-sm opacity-80">
-                        {q.data.channelTitle ? `Channel: ${q.data.channelTitle} • ` : ""}
-                        Videos: {q.data.totalVideos}
-                    </div>
-                    <div className="mt-2 text-sm">
-                        Total: <b>{formatDuration(total)}</b> • At {speed}x:{" "}
-                        <b>{formatDuration(atSpeed)}</b>
-                    </div>
-                </div>
-            )}
+            <label className="group flex cursor-pointer items-center gap-2">
+              <Checkbox checked={applyToAll} onCheckedChange={(checked) => setApplyToAll(Boolean(checked))} />
+              <span className="text-sm text-gray-400 transition group-hover:text-gray-200">Apply to all</span>
+            </label>
+          </div>
 
-            <div className="overflow-auto rounded border">
-                <table className="min-w-300 w-full text-sm">
-                    <thead className="border-b">
-                        {table.getHeaderGroups().map((hg) => (
-                            <tr key={hg.id}>
-                                {hg.headers.map((h) => (
-                                    <th key={h.id} className="text-left p-2">
-                                        {flexRender(h.column.columnDef.header, h.getContext())}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <tbody>
-                        {table.getRowModel().rows.map((r) => (
-                            <tr key={r.id} className="border-b">
-                                {r.getVisibleCells().map((c) => (
-                                    <td key={c.id} className="p-2 align-top">
-                                        {flexRender(c.column.columnDef.cell, c.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                        {!table.getRowModel().rows.length && (
-                            <tr>
-                                <td className="p-3 opacity-70" colSpan={columns.length}>
-                                    No data yet.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+          <Button type="button" onClick={analyzeInput} size="lg" className="gap-2 text-sm font-bold uppercase tracking-wide active:scale-[0.98]">
+            <BarChart3 className="size-4" />
+            Analyze
+          </Button>
+        </CardContent>
+      </Card>
+
+      {rows.length === 0 && (
+        <section className="rounded-xl border border-border-dark bg-black/60 p-8 text-center">
+          <p className="text-lg font-semibold text-gray-100">Compare playlist time at every speed in one table.</p>
+          <p className="mt-2 text-sm text-gray-400">
+            Paste one or more playlist URLs/IDs above, then adjust custom speed and per-playlist ranges.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4 text-xs font-semibold uppercase tracking-wide"
+            onClick={() =>
+              setInputText(
+                [
+                  "https://www.youtube.com/playlist?list=PL590L5WQmH8fJ54F1f9FBM1v4M6V6Ak3M",
+                  "PLRqwX-V7Uu6Y7MDQ8xqNf4j2FfN6Q4jzP"
+                ].join("\n")
+              )
+            }
+          >
+            <WandSparkles className="mr-2 size-3.5" />
+            Example
+          </Button>
+        </section>
+      )}
+
+      {rows.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center rounded-lg border border-border-dark bg-surface-darker p-1 text-xs font-semibold uppercase tracking-wide">
+              <Button
+                type="button"
+                variant={orderMode === "sorted" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 rounded px-3 py-1.5"
+                onClick={() => toggleOrderMode("sorted")}
+              >
+                Sorted
+              </Button>
+              <Button
+                type="button"
+                variant={orderMode === "manual" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 rounded px-3 py-1.5"
+                onClick={() => toggleOrderMode("manual")}
+              >
+                Manual
+              </Button>
             </div>
-        </div>
-    );
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs uppercase tracking-wide text-gray-500">Custom speed</span>
+              <SpeedControl value={customSpeed} onCommit={setCustomSpeed} />
+            </div>
+          </div>
+
+          <PlaylistsTable
+            rows={rows}
+            orderMode={orderMode}
+            sorting={sorting}
+            customSpeed={customSpeed}
+            onSortingChange={setSorting}
+            onRangeApply={(rowId, start, end) => {
+              setRows((prev) =>
+                prev.map((entry) =>
+                  entry.id === rowId
+                    ? {
+                        ...entry,
+                        rangeStart: start,
+                        rangeEnd: end
+                      }
+                    : entry
+                )
+              );
+            }}
+            onRemoveRow={(rowId) => {
+              setRows((prev) => prev.filter((entry) => entry.id !== rowId));
+            }}
+            onReorderRows={(sourceId, destinationId) => {
+              setRows((prev) => {
+                const sourceIndex = prev.findIndex((entry) => entry.id === sourceId);
+                const destinationIndex = prev.findIndex((entry) => entry.id === destinationId);
+                if (sourceIndex < 0 || destinationIndex < 0) return prev;
+
+                const next = [...prev];
+                const [item] = next.splice(sourceIndex, 1);
+                next.splice(destinationIndex, 0, item);
+                return next;
+              });
+            }}
+            onMoveRow={(rowId, direction) => {
+              setRows((prev) => reorderRowsByKeyboard(prev, rowId, direction));
+            }}
+            onVisibleOrderChange={(ids) => {
+              visibleOrderRef.current = ids;
+            }}
+          />
+        </section>
+      )}
+    </div>
+  );
 }
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60 * 6,
+      retry: 1
+    }
+  }
+});
 
 export default function App() {
-    return (
-        <QueryClientProvider client={qc}>
-            <Dashboard />
-        </QueryClientProvider>
-    );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppInner />
+    </QueryClientProvider>
+  );
 }
