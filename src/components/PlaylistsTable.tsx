@@ -166,6 +166,10 @@ export default function PlaylistsTable({
         cell: ({ row }) => {
           const item = row.original;
           const metrics = metricsById.get(item.id);
+          const playlistTitle = item.data?.title?.trim() || item.playlistId || "Playlist";
+          const playlistUrl = item.playlistId
+            ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}`
+            : null;
 
           if (item.status === "loading") {
             return (
@@ -197,9 +201,10 @@ export default function PlaylistsTable({
                 {item.data?.thumbnailUrl ? (
                   <img
                     src={item.data.thumbnailUrl}
-                    alt="Playlist thumbnail"
+                    alt={`${playlistTitle} thumbnail`}
                     className="h-full w-full object-cover opacity-85 transition group-hover:opacity-100"
-                    loading="lazy"
+                    loading={row.index < 4 ? "eager" : "lazy"}
+                    fetchPriority={row.index === 0 ? "high" : row.index < 4 ? "low" : "auto"}
                   />
                 ) : (
                   <div className="h-full w-full bg-gradient-to-br from-black via-zinc-900 to-zinc-800" />
@@ -207,16 +212,24 @@ export default function PlaylistsTable({
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary">
-                  <a
-                    href={item.playlistId ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}` : undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-primary"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {item.data?.title || item.playlistId}
-                  </a>
+                <h3
+                  className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary"
+                  aria-label={playlistTitle}
+                >
+                  {playlistUrl ? (
+                    <a
+                      href={playlistUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-primary"
+                      aria-label={`Open playlist: ${playlistTitle}`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {playlistTitle}
+                    </a>
+                  ) : (
+                    <span>{playlistTitle}</span>
+                  )}
                 </h3>
                 <p className="truncate text-xs text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
                 <p className="mt-1 text-[11px] text-gray-600">{item.loadingLabel ?? ""}</p>
