@@ -1,3 +1,11 @@
+/**
+ * Cloudflare Pages Function backend for playlist analytics.
+ *
+ * @remarks
+ * - Keeps YouTube API keys server-side.
+ * - Rotates keys on quota/rate errors.
+ * - Caches successful responses in edge cache.
+ */
 interface Env {
   YOUTUBE_KEYS: string;
 }
@@ -30,12 +38,12 @@ type PlaylistMetaResponse = {
     contentDetails?: {
       itemCount?: number;
     };
-    player?: {
-      embedHtml?: string;
-    };
-    status?: {
-      privacyStatus?: string;
-    };
+    // player?: {
+    //   embedHtml?: string;
+    // };
+    // status?: {
+    //   privacyStatus?: string;
+    // };
   }>;
 };
 
@@ -44,8 +52,6 @@ type PlaylistItemsResponse = {
   items?: Array<{
     contentDetails?: {
       videoId?: string;
-      startAt?: string;
-      endAt?: string;
     };
     snippet?: {
       publishedAt?: string;
@@ -72,28 +78,41 @@ const RETRYABLE_REASONS = new Set([
   "rateLimitExceeded",
   "backendError",
   "keyInvalid",
-  "accessNotConfigured"
+  "accessNotConfigured",
 ]);
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 80;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
+/** Creates a JSON response with standard content-type. */
+function json(
+  data: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      ...headers
-    }
+      ...headers,
+    },
   });
 }
 
+/** Derives a coarse client key for lightweight in-memory rate limiting. */
 function getClientKey(request: Request) {
-  const ip = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+  const ip =
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "unknown";
   return ip.split(",")[0].trim();
 }
 
+/**
+ * Fixed-window rate limiter.
+ * Returns true when the current client key exceeds request quota.
+ */
 function isRateLimited(clientKey: string) {
   const now = Date.now();
 
@@ -117,12 +136,16 @@ function isRateLimited(clientKey: string) {
   return false;
 }
 
+/** Basic playlist id format guard to reject obvious invalid input. */
 function isValidPlaylistId(playlistId: string) {
   return /^[A-Za-z0-9_-]{10,100}$/.test(playlistId);
 }
 
+/** Parses ISO-8601 duration strings (e.g. PT1H20M10S) into seconds. */
 function parseIsoDurationToSeconds(value: string) {
-  const match = value.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  const match = value.match(
+    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
+  );
   if (!match) return 0;
 
   const days = Number(match[1] || 0);
@@ -133,6 +156,10 @@ function parseIsoDurationToSeconds(value: string) {
   return days * 86_400 + hours * 3600 + minutes * 60 + seconds;
 }
 
+/**
+ * Parses playlist item clip markers (`startAt`/`endAt`) into seconds.
+ * Supports plain seconds, ISO durations, and mm:ss / hh:mm:ss formats.
+ */
 function parseClipTimeToSeconds(value?: string) {
   if (!value) return null;
   const trimmed = value.trim();
@@ -166,7 +193,8 @@ async function parseYoutubeError(response: Response) {
   try {
     const payload = (await response.clone().json()) as YoutubeErrorPayload;
     reason = payload.error?.errors?.[0]?.reason || "";
-    message = payload.error?.errors?.[0]?.message || payload.error?.message || message;
+    message =
+      payload.error?.errors?.[0]?.message || payload.error?.message || message;
   } catch {
     const text = (await response.clone().text()).trim();
     if (text) message = text;
@@ -179,6 +207,10 @@ function shouldRotateKey(status: number, reason: string) {
   return status === 403 || status === 429 || RETRYABLE_REASONS.has(reason);
 }
 
+/**
+ * Calls a YouTube endpoint and retries with the next API key
+ * when the error indicates quota/rate/key rotation is appropriate.
+ */
 async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
   let last: Response | null = null;
 
@@ -204,13 +236,18 @@ async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
   return last;
 }
 
+/** Maps raw YouTube API failures to frontend-friendly error responses. */
 async function toUserFacingError(response: Response) {
   const { reason, message } = await parseYoutubeError(response);
   const status = response.status;
   const normalizedReason = reason.toLowerCase();
   const normalizedMessage = message.toLowerCase();
 
-  if (status === 404 || normalizedReason.includes("notfound") || normalizedMessage.includes("not found")) {
+  if (
+    status === 404 ||
+    normalizedReason.includes("notfound") ||
+    normalizedMessage.includes("not found")
+  ) {
     return json({ error: "Playlist is private or unavailable" }, 404);
   }
 
@@ -224,9 +261,17 @@ async function toUserFacingError(response: Response) {
     return json({ error: "YouTube API quota or rate limit exceeded" }, 429);
   }
 
-  return json({ error: message || "Unable to fetch playlist" }, Math.min(Math.max(status, 400), 502));
+  return json(
+    { error: message || "Unable to fetch playlist" },
+    Math.min(Math.max(status, 400), 502),
+  );
 }
 
+/**
+ * GET /api/playlist?list=PLAYLIST_ID
+ *
+ * Returns a compact DTO optimized for range-based frontend calculations.
+ */
 export const onRequestGet = async ({ request, env }: HandlerContext) => {
   const requestUrl = new URL(request.url);
   const playlistId = requestUrl.searchParams.get("list")?.trim() || "";
@@ -250,9 +295,13 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
 
   const clientKey = getClientKey(request);
   if (isRateLimited(clientKey)) {
-    return json({ error: "Rate limit exceeded. Please try again shortly." }, 429, {
-      "retry-after": "60"
-    });
+    return json(
+      { error: "Rate limit exceeded. Please try again shortly." },
+      429,
+      {
+        "retry-after": "60",
+      },
+    );
   }
 
   const keys = (env.YOUTUBE_KEYS || "")
@@ -269,7 +318,10 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     `?part=snippet,contentDetails,status&id=${encodeURIComponent(playlistId)}` +
     "&fields=items(id,snippet(title,channelTitle,publishedAt,thumbnails(default(url),medium(url),high(url))),contentDetails(itemCount),status(privacyStatus))";
 
-  const metaResponse = await youtubeFetchWithRotation(keys, playlistMetaEndpoint);
+  const metaResponse = await youtubeFetchWithRotation(
+    keys,
+    playlistMetaEndpoint,
+  );
   if (!metaResponse.ok) return toUserFacingError(metaResponse);
 
   const metaJson = (await metaResponse.json()) as PlaylistMetaResponse;
@@ -282,8 +334,6 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   const playlistTitle = playlistMeta.snippet?.title || "Untitled playlist";
   const channelTitle = playlistMeta.snippet?.channelTitle || "Unknown channel";
   const thumbnailUrl =
-    playlistMeta.snippet?.thumbnails?.high?.url ||
-    playlistMeta.snippet?.thumbnails?.medium?.url ||
     playlistMeta.snippet?.thumbnails?.default?.url ||
     null;
   const publishedAt = playlistMeta.snippet?.publishedAt || null;
@@ -304,22 +354,28 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
       (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "") +
       "&fields=nextPageToken,items(contentDetails(videoId,startAt,endAt),snippet(publishedAt))";
 
-    const playlistItemsResponse = await youtubeFetchWithRotation(keys, playlistItemsEndpoint);
-    if (!playlistItemsResponse.ok) return toUserFacingError(playlistItemsResponse);
+    const playlistItemsResponse = await youtubeFetchWithRotation(
+      keys,
+      playlistItemsEndpoint,
+    );
+    if (!playlistItemsResponse.ok)
+      return toUserFacingError(playlistItemsResponse);
 
-    const itemsJson = (await playlistItemsResponse.json()) as PlaylistItemsResponse;
+    const itemsJson =
+      (await playlistItemsResponse.json()) as PlaylistItemsResponse;
     const items = itemsJson.items || [];
 
     for (const item of items) {
       orderedItems.push({
         videoId: item.contentDetails?.videoId || null,
-        startAt: item.contentDetails?.startAt,
-        endAt: item.contentDetails?.endAt,
       });
 
       const addedAt = item.snippet?.publishedAt || null;
       if (!addedAt) continue;
-      if (!lastAddedAt || new Date(addedAt).getTime() > new Date(lastAddedAt).getTime()) {
+      if (
+        !lastAddedAt ||
+        new Date(addedAt).getTime() > new Date(lastAddedAt).getTime()
+      ) {
         lastAddedAt = addedAt;
       }
     }
@@ -350,11 +406,13 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     const videosJson = (await videosResponse.json()) as VideosResponse;
     for (const item of videosJson.items || []) {
       if (!item.id) continue;
-      const durationSec = parseIsoDurationToSeconds(item.contentDetails?.duration || "PT0S");
+      const durationSec = parseIsoDurationToSeconds(
+        item.contentDetails?.duration || "PT0S",
+      );
       const viewCount = Number.parseInt(item.statistics?.viewCount || "0", 10);
       videoMeta.set(item.id, {
         durationSec,
-        views: Number.isFinite(viewCount) ? viewCount : 0
+        views: Number.isFinite(viewCount) ? viewCount : 0,
       });
     }
   }
@@ -397,7 +455,10 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     totalVideoViewsSum += video.views;
   }
 
-  const totalDurationSec = orderedDurationsSec.reduce((sum, value) => sum + value, 0);
+  const totalDurationSec = orderedDurationsSec.reduce(
+    (sum, value) => sum + value,
+    0,
+  );
 
   const body = {
     playlistId,
@@ -415,7 +476,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   };
 
   const response = json(body, 200, {
-    "cache-control": "public, max-age=0, s-maxage=21600"
+    "cache-control": "public, max-age=0, s-maxage=21600",
   });
 
   await cache.put(cacheKey, response.clone());

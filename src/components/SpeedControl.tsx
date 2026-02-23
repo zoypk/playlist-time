@@ -9,6 +9,9 @@ type SpeedControlProps = {
   onCommit: (value: number) => void;
 };
 
+/**
+ * Custom speed editor with step buttons and commit-on-blur/enter behavior.
+ */
 export default function SpeedControl({ value, onCommit }: SpeedControlProps) {
   const [draft, setDraft] = React.useState(value.toFixed(2));
 

@@ -54,6 +54,7 @@ const SPEED_COLUMNS: SpeedColumn[] = BUILT_IN_SPEEDS.map((speed) => ({
   primary: speed === 1
 }));
 
+/** Header label with current sort direction indicator. */
 function SortHeader({
   label,
   sorted,
@@ -77,6 +78,7 @@ function SortHeader({
   );
 }
 
+/** Renders the standardized row-level error badge. */
 function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   const map: Record<string, string> = {
     invalid: "Invalid URL/ID",
@@ -89,6 +91,13 @@ function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   return <Badge variant="destructive">{map[type ?? "unknown"]}</Badge>;
 }
 
+/**
+ * Table renderer for playlist metrics.
+ *
+ * @remarks
+ * - In `sorted` mode, TanStack sorting is enabled.
+ * - In `manual` mode, sorting is disabled and row reordering is enabled.
+ */
 export default function PlaylistsTable({
   rows,
   orderMode,
@@ -504,6 +513,7 @@ export default function PlaylistsTable({
   );
 }
 
+/** Moves a row up/down for keyboard-accessible manual ordering. */
 export function reorderRowsByKeyboard(rows: PlaylistRow[], rowId: string, direction: -1 | 1) {
   const currentIndex = rows.findIndex((entry) => entry.id === rowId);
   if (currentIndex < 0) return rows;

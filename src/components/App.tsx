@@ -38,6 +38,10 @@ class PlaylistApiError extends Error {
 
 const API_BASE = (import.meta.env.PUBLIC_API_BASE ?? "").replace(/\/$/, "");
 
+/**
+ * Fetches playlist analysis payload from the backend proxy endpoint.
+ * Throws a typed error so row-level error mapping can use HTTP status.
+ */
 async function fetchPlaylist(playlistId: string): Promise<PlaylistApiDto> {
   const response = await fetch(`${API_BASE}/api/playlist?list=${encodeURIComponent(playlistId)}`);
 
@@ -62,6 +66,7 @@ async function fetchPlaylist(playlistId: string): Promise<PlaylistApiDto> {
   return (await response.json()) as PlaylistApiDto;
 }
 
+/** Maps row error categories to user-facing copy. */
 function getFriendlyError(type: PlaylistRow["errorType"], fallback?: string) {
   if (type === "invalid") return "Invalid playlist URL or ID.";
   if (type === "unavailable") return "Playlist is private, deleted, or unavailable.";
@@ -70,6 +75,10 @@ function getFriendlyError(type: PlaylistRow["errorType"], fallback?: string) {
   return fallback || "Unexpected error while loading this playlist.";
 }
 
+/**
+ * Main analyzer container: input parsing, fetch orchestration,
+ * local persistence, ordering mode, and table wiring.
+ */
 function AppInner() {
   const queryClient = useQueryClient();
 
@@ -84,6 +93,7 @@ function AppInner() {
 
   const visibleOrderRef = React.useRef<string[]>([]);
 
+  /** Fetches and hydrates a single row from loading to success/error state. */
   const hydrateRow = React.useCallback(
     async (rowId: string, playlistId: string) => {
       setRows((prev) =>
@@ -152,6 +162,7 @@ function AppInner() {
     [queryClient]
   );
 
+  /** Restores persisted rows/settings on first mount. */
   React.useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -190,6 +201,7 @@ function AppInner() {
     }
   }, [hydrateRow]);
 
+  /** Persists relevant UI state to localStorage after each change. */
   React.useEffect(() => {
     const payload: PersistedState = {
       version: 1,
@@ -212,6 +224,7 @@ function AppInner() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [applyToAll, customSpeed, defaultRangeEnd, defaultRangeStart, orderMode, rows, sorting]);
 
+  /** Parses pasted input, appends rows, and starts fetches for valid playlist IDs. */
   const analyzeInput = React.useCallback(() => {
     const tokens = parsePlaylistInput(inputText);
     if (!tokens.length) return;
@@ -258,6 +271,7 @@ function AppInner() {
     }
   }, [applyToAll, defaultRangeEnd, defaultRangeStart, hydrateRow, inputText]);
 
+  /** Switches between sortable mode and manual (drag/keyboard) ordering mode. */
   const toggleOrderMode = (nextMode: OrderMode) => {
     if (nextMode === orderMode) return;
 

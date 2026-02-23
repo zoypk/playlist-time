@@ -69,13 +69,7 @@ Run Cloudflare Functions API locally (separate terminal):
 bun run worker:dev
 ```
 
-By default, Astro calls relative `/api/playlist` in production. For local split-server development, set:
-
-```env
-PUBLIC_API_BASE=http://127.0.0.1:8788
-```
-
-in `.env` when needed.
+Astro dev proxies `/api/*` to `http://127.0.0.1:8788`, so run both commands above for end-to-end local testing.
 
 ## Build and preview
 

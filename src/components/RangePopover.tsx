@@ -15,6 +15,9 @@ type RangePopoverProps = {
   onApply: (start: number | null, end: number | null) => void;
 };
 
+/**
+ * Range editor popover for per-playlist start/end selection and presets.
+ */
 export default function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangePopoverProps) {
   const [start, setStart] = React.useState<string>(range.start > 0 ? String(range.start) : "");
   const [end, setEnd] = React.useState<string>(range.end > 0 ? String(range.end) : "");

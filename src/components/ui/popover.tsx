@@ -6,6 +6,7 @@ const Popover = PopoverPrimitive.Root;
 const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverAnchor = PopoverPrimitive.Anchor;
 
+/** Shared popover content shell for range editor and future overlays. */
 function PopoverContent({
   className,
   align = "center",

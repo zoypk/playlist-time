@@ -7,5 +7,12 @@ import react from '@astrojs/react';
 export default defineConfig({
   site: 'https://playlisttime.app',
   integrations: [react()],
-  output: 'static'
+  output: 'static',
+  vite: {
+    server: {
+      proxy: {
+        '/api': 'http://127.0.0.1:8788'
+      }
+    }
+  }
 });

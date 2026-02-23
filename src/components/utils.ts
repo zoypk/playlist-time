@@ -2,12 +2,18 @@ import type { PlaylistRow, PlaylistRowErrorType, RangeInfo, RowMetrics } from ".
 
 const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{10,100}$/;
 
+/** Playback speeds shown as fixed columns in the grid. */
 export const BUILT_IN_SPEEDS = [0.5, 1, 1.25, 1.5, 2] as const;
 
+/** Clamps a numeric value to an inclusive range. */
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * Parses a positive integer from an input string.
+ * Returns `null` for blank/invalid/non-positive values.
+ */
 export function toNullablePositiveInt(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -16,6 +22,7 @@ export function toNullablePositiveInt(value: string) {
   return parsed;
 }
 
+/** Splits pasted text into tokens using newline/comma/whitespace delimiters. */
 export function parsePlaylistInput(text: string) {
   return text
     .split(/[\n,\s]+/g)
@@ -23,6 +30,9 @@ export function parsePlaylistInput(text: string) {
     .filter(Boolean);
 }
 
+/**
+ * Extracts a playlist ID from a YouTube URL or raw ID input.
+ */
 export function tryExtractPlaylistId(value: string) {
   const raw = value.trim();
   if (!raw) return null;
@@ -42,6 +52,7 @@ export function isValidPlaylistId(value: string) {
   return PLAYLIST_ID_PATTERN.test(value);
 }
 
+/** Creates a stable row id for client-side playlist entries. */
 export function createRowId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -49,6 +60,7 @@ export function createRowId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** Formats seconds into compact watch-time strings used in table cells. */
 export function formatDuration(seconds: number) {
   const total = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(total / 3600);
@@ -62,6 +74,10 @@ export function formatDuration(seconds: number) {
   return `${mins}m ${String(secs).padStart(2, "0")}s`;
 }
 
+/**
+ * Formats average duration with minute/second precision for short clips
+ * and hour/minute precision for long clips.
+ */
 export function formatAvgDuration(seconds: number) {
   const total = Math.max(0, Math.floor(seconds));
   const mins = Math.floor(total / 60);
@@ -74,6 +90,7 @@ export function formatAvgDuration(seconds: number) {
   return `${mins}m ${String(secs).padStart(2, "0")}s`;
 }
 
+/** Formats large view totals using compact notation. */
 export function formatViews(value: number) {
   if (!Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en", {
@@ -82,6 +99,7 @@ export function formatViews(value: number) {
   }).format(value);
 }
 
+/** Formats an ISO date as a readable calendar label. */
 export function formatDateLabel(value: string | null) {
   if (!value) return "-";
   const date = new Date(value);
@@ -93,6 +111,7 @@ export function formatDateLabel(value: string | null) {
   }).format(date);
 }
 
+/** Formats an ISO date into a relative time label, e.g. "2 months ago". */
 export function formatRelativeTime(value: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -114,6 +133,10 @@ export function formatRelativeTime(value: string | null) {
   return rtf.format(Math.round(diffMs / year), "year");
 }
 
+/**
+ * Computes effective range metadata for a row based on current row data
+ * and user-selected start/end bounds.
+ */
 export function getRangeInfo(row: PlaylistRow): RangeInfo {
   if (row.status !== "success" || !row.data || !Array.isArray(row.data.orderedDurationsSec)) {
     return {
@@ -155,6 +178,9 @@ export function getRangeInfo(row: PlaylistRow): RangeInfo {
   };
 }
 
+/**
+ * Computes selected duration and average video length for a row's active range.
+ */
 export function getRowMetrics(row: PlaylistRow): RowMetrics {
   const range = getRangeInfo(row);
 
@@ -177,6 +203,7 @@ export function getRowMetrics(row: PlaylistRow): RowMetrics {
   };
 }
 
+/** Human-friendly label shown in the range pill. */
 export function getRangePillLabel(range: RangeInfo) {
   if (range.unavailable) return "Range unavailable";
   if (range.totalVideos === 0) return "All (0)";
@@ -184,6 +211,9 @@ export function getRangePillLabel(range: RangeInfo) {
   return `${range.start}-${range.end}`;
 }
 
+/**
+ * Reorders rows by a list of ids while preserving unknown ids at the end.
+ */
 export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: string[]) {
   if (!orderedIds.length) return items;
   const indexById = new Map(orderedIds.map((id, index) => [id, index]));
@@ -197,6 +227,7 @@ export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: s
   });
 }
 
+/** Moves one array item to another index and returns a new array. */
 export function moveArrayItem<T>(items: T[], from: number, to: number) {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
     return items;
@@ -207,6 +238,7 @@ export function moveArrayItem<T>(items: T[], from: number, to: number) {
   return next;
 }
 
+/** Tooltip text for time delta vs 1x playback. */
 export function speedCellTooltip(oneXSeconds: number, speedSeconds: number) {
   const delta = oneXSeconds - speedSeconds;
   if (Math.abs(delta) < 1) return "Same as 1x";
@@ -214,6 +246,7 @@ export function speedCellTooltip(oneXSeconds: number, speedSeconds: number) {
   return `Adds ${formatDuration(Math.abs(delta))} vs 1x`;
 }
 
+/** Maps API/network errors to display-friendly row error categories. */
 export function classifyRowError(status: number, message: string): PlaylistRowErrorType {
   const normalized = message.toLowerCase();
 
@@ -228,6 +261,10 @@ export function classifyRowError(status: number, message: string): PlaylistRowEr
   return "unknown";
 }
 
+/**
+ * Normalizes optional range bounds against playlist length.
+ * Returns null bounds if playlist length is unknown/empty.
+ */
 export function normalizeRangeForTotal(
   start: number | null,
   end: number | null,
