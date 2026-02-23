@@ -25,24 +25,64 @@ export function toNullablePositiveInt(value: string) {
 /** Splits pasted text into tokens using newline/comma/whitespace delimiters. */
 export function parsePlaylistInput(text: string) {
   return text
-    .split(/[\n,\s]+/g)
-    .map((part) => part.trim())
+    .split(/[\n,;\t\s]+/g)
+    .map(normalizeInputToken)
     .filter(Boolean);
+}
+
+/**
+ * Normalizes raw pasted tokens before ID extraction.
+ * Handles missing protocols, wrapping punctuation, and encoded values.
+ */
+export function normalizeInputToken(value: string) {
+  let token = value.trim();
+  if (!token) return "";
+
+  token = token.replace(/^["'`<{(\[\s]+/g, "");
+  token = token.replace(/["'`>})\]\s]+$/g, "");
+  token = token.replace(/[),;]+$/g, "");
+  if (!token) return "";
+
+  if (/^(www\.|m\.youtube\.com|youtube\.com|youtu\.be)/i.test(token)) {
+    token = `https://${token}`;
+  }
+
+  if (token.includes("%")) {
+    try {
+      token = decodeURIComponent(token);
+    } catch {
+      // Keep original token if decoding fails.
+    }
+  }
+
+  return token.trim();
 }
 
 /**
  * Extracts a playlist ID from a YouTube URL or raw ID input.
  */
 export function tryExtractPlaylistId(value: string) {
-  const raw = value.trim();
+  const raw = normalizeInputToken(value);
   if (!raw) return null;
+
+  const directListMatch = raw.match(/(?:^|[?&])list=([A-Za-z0-9_-]{10,100})(?:$|[&#])/i);
+  if (directListMatch?.[1]) return directListMatch[1];
+
+  const prefixedMatch = raw.match(/^list=([A-Za-z0-9_-]{10,100})$/i);
+  if (prefixedMatch?.[1]) return prefixedMatch[1];
 
   try {
     const url = new URL(raw);
     const list = url.searchParams.get("list");
     if (list) return list;
   } catch {
-    // Non-URL input is treated as raw playlist ID.
+    try {
+      const url = new URL(`https://${raw}`);
+      const list = url.searchParams.get("list");
+      if (list) return list;
+    } catch {
+      // Non-URL input is treated as raw playlist ID.
+    }
   }
 
   return raw;

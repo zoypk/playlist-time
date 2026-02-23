@@ -231,6 +231,12 @@ function AppInner() {
 
     const newRows: PlaylistRow[] = [];
     const validRows: Array<{ rowId: string; playlistId: string }> = [];
+    const existingIds = new Set(
+      rows
+        .map((entry) => entry.playlistId)
+        .filter((entry): entry is string => Boolean(entry))
+    );
+    const pendingIds = new Set<string>();
 
     for (const token of tokens) {
       const maybeId = tryExtractPlaylistId(token);
@@ -249,6 +255,12 @@ function AppInner() {
         });
         continue;
       }
+
+      if (existingIds.has(maybeId) || pendingIds.has(maybeId)) {
+        continue;
+      }
+
+      pendingIds.add(maybeId);
 
       newRows.push({
         id: rowId,
@@ -269,7 +281,7 @@ function AppInner() {
     for (const row of validRows) {
       void hydrateRow(row.rowId, row.playlistId);
     }
-  }, [applyToAll, defaultRangeEnd, defaultRangeStart, hydrateRow, inputText]);
+  }, [applyToAll, defaultRangeEnd, defaultRangeStart, hydrateRow, inputText, rows]);
 
   /** Switches between sortable mode and manual (drag/keyboard) ordering mode. */
   const toggleOrderMode = (nextMode: OrderMode) => {

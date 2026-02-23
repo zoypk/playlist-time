@@ -3,8 +3,9 @@
  *
  * @remarks
  * - Keeps YouTube API keys server-side.
- * - Rotates keys on quota/rate errors.
- * - Caches successful responses in edge cache.
+ * - Uses round-robin key selection for every outgoing API call.
+ * - Retries across keys on quota/rate failures.
+ * - Serves cached responses with stale-while-revalidate behavior.
  */
 interface Env {
   YOUTUBE_KEYS: string;
@@ -13,6 +14,7 @@ interface Env {
 type HandlerContext = {
   request: Request;
   env: Env;
+  waitUntil?: (promise: Promise<unknown>) => void;
 };
 
 type YoutubeErrorPayload = {
@@ -30,7 +32,6 @@ type PlaylistMetaResponse = {
       title?: string;
       channelTitle?: string;
       publishedAt?: string;
-      description?: string;
       thumbnails?: {
         default?: { url?: string };
       };
@@ -38,12 +39,6 @@ type PlaylistMetaResponse = {
     contentDetails?: {
       itemCount?: number;
     };
-    // player?: {
-    //   embedHtml?: string;
-    // };
-    // status?: {
-    //   privacyStatus?: string;
-    // };
   }>;
 };
 
@@ -71,6 +66,30 @@ type VideosResponse = {
   }>;
 };
 
+type PlaylistVideoEntry = {
+  videoId: string | null;
+  startAt?: string;
+  endAt?: string;
+};
+
+type PlaylistDto = {
+  playlistId: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string | null;
+  publishedAt: string | null;
+  lastAddedAt: string | null;
+  totalVideos: number;
+  totalDurationSec: number;
+  totalVideoViewsSum: number;
+  orderedDurationsSec: number[];
+  unavailableVideoCount: number;
+};
+
+type VideoBatchResult =
+  | { ok: true; json: VideosResponse }
+  | { ok: false; response: Response };
+
 const RETRYABLE_REASONS = new Set([
   "quotaExceeded",
   "dailyLimitExceeded",
@@ -85,6 +104,15 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 80;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
+const FRESH_TTL_SECONDS = 6 * 60 * 60;
+const STALE_REVALIDATE_SECONDS = 24 * 60 * 60;
+const VIDEO_BATCH_CONCURRENCY = 4;
+
+const CACHE_TIMESTAMP_HEADER = "x-playlist-time-cached-at";
+const CACHE_STATUS_HEADER = "x-playlist-time-cache";
+
+let keyCursor = 0;
+
 /** Creates a JSON response with standard content-type. */
 function json(
   data: unknown,
@@ -97,6 +125,16 @@ function json(
       "content-type": "application/json; charset=utf-8",
       ...headers,
     },
+  });
+}
+
+/** Adds cache status metadata without mutating the original response. */
+function withCacheStatus(response: Response, status: "MISS" | "HIT" | "STALE") {
+  const headers = new Headers(response.headers);
+  headers.set(CACHE_STATUS_HEADER, status);
+  return new Response(response.body, {
+    status: response.status,
+    headers,
   });
 }
 
@@ -129,11 +167,7 @@ function isRateLimited(clientKey: string) {
   }
 
   bucket.count += 1;
-  if (bucket.count > RATE_LIMIT_MAX) {
-    return true;
-  }
-
-  return false;
+  return bucket.count > RATE_LIMIT_MAX;
 }
 
 /** Basic playlist id format guard to reject obvious invalid input. */
@@ -176,14 +210,22 @@ function parseClipTimeToSeconds(value?: string) {
 
   const parts = trimmed.split(":").map((entry) => Number.parseInt(entry, 10));
   if (parts.some((entry) => !Number.isFinite(entry))) return null;
-  if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  }
-  if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
 
   return null;
+}
+
+/** Returns the next key index for round-robin usage. */
+function getNextKeyStartIndex(keysLength: number) {
+  if (keysLength <= 0) return 0;
+  const index = keyCursor % keysLength;
+  keyCursor = (keyCursor + 1) % keysLength;
+  return index;
+}
+
+function shouldRotateKey(status: number, reason: string) {
+  return status === 403 || status === 429 || RETRYABLE_REASONS.has(reason);
 }
 
 async function parseYoutubeError(response: Response) {
@@ -203,18 +245,17 @@ async function parseYoutubeError(response: Response) {
   return { reason, message };
 }
 
-function shouldRotateKey(status: number, reason: string) {
-  return status === 403 || status === 429 || RETRYABLE_REASONS.has(reason);
-}
-
 /**
- * Calls a YouTube endpoint and retries with the next API key
+ * Calls a YouTube endpoint and retries in ring-order across keys
  * when the error indicates quota/rate/key rotation is appropriate.
  */
 async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
   let last: Response | null = null;
+  const startIndex = getNextKeyStartIndex(keys.length);
 
-  for (const key of keys) {
+  for (let attempt = 0; attempt < keys.length; attempt += 1) {
+    const keyIndex = (startIndex + attempt) % keys.length;
+    const key = keys[keyIndex];
     const url = new URL(endpoint);
     url.searchParams.set("key", key);
 
@@ -229,11 +270,7 @@ async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
     }
   }
 
-  if (!last) {
-    return new Response("No API key available", { status: 500 });
-  }
-
-  return last;
+  return last ?? new Response("No API key available", { status: 500 });
 }
 
 /** Maps raw YouTube API failures to frontend-friendly error responses. */
@@ -268,51 +305,50 @@ async function toUserFacingError(response: Response) {
 }
 
 /**
- * GET /api/playlist?list=PLAYLIST_ID
- *
- * Returns a compact DTO optimized for range-based frontend calculations.
+ * Runs async work with a bounded concurrency level.
  */
-export const onRequestGet = async ({ request, env }: HandlerContext) => {
-  const requestUrl = new URL(request.url);
-  const playlistId = requestUrl.searchParams.get("list")?.trim() || "";
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+) {
+  if (!items.length) return [] as R[];
 
-  if (!playlistId) {
-    return json({ error: "Missing query param: list=PLAYLIST_ID" }, 400);
-  }
+  const results = new Array<R>(items.length);
+  let index = 0;
 
-  if (!isValidPlaylistId(playlistId)) {
-    return json({ error: "Invalid playlist ID format" }, 400);
-  }
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (true) {
+        const current = index;
+        index += 1;
+        if (current >= items.length) break;
+        results[current] = await worker(items[current], current);
+      }
+    },
+  );
 
-  const cache = (caches as unknown as { default: Cache }).default;
-  const cacheUrl = new URL(request.url);
-  cacheUrl.search = `list=${encodeURIComponent(playlistId)}`;
-  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
-  const cached = await cache.match(cacheKey);
-  if (cached) {
-    return new Response(cached.body, cached);
-  }
+  await Promise.all(runners);
+  return results;
+}
 
-  const clientKey = getClientKey(request);
-  if (isRateLimited(clientKey)) {
-    return json(
-      { error: "Rate limit exceeded. Please try again shortly." },
-      429,
-      {
-        "retry-after": "60",
-      },
-    );
-  }
+function getCachedAgeSeconds(response: Response) {
+  const raw = response.headers.get(CACHE_TIMESTAMP_HEADER);
+  if (!raw) return Number.POSITIVE_INFINITY;
+  const createdAt = Number.parseInt(raw, 10);
+  if (!Number.isFinite(createdAt) || createdAt <= 0)
+    return Number.POSITIVE_INFINITY;
+  return (Date.now() - createdAt) / 1000;
+}
 
-  const keys = (env.YOUTUBE_KEYS || "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  if (!keys.length) {
-    return json({ error: "Server misconfigured: YOUTUBE_KEYS is empty" }, 500);
-  }
-
+/**
+ * Fetches and composes the compact playlist DTO used by the frontend table.
+ */
+async function buildPlaylistDto(
+  playlistId: string,
+  keys: string[],
+): Promise<PlaylistDto | Response> {
   const playlistMetaEndpoint =
     "https://www.googleapis.com/youtube/v3/playlists" +
     `?part=snippet,contentDetails,status&id=${encodeURIComponent(playlistId)}` +
@@ -333,19 +369,13 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
 
   const playlistTitle = playlistMeta.snippet?.title || "Untitled playlist";
   const channelTitle = playlistMeta.snippet?.channelTitle || "Unknown channel";
-  const thumbnailUrl =
-    playlistMeta.snippet?.thumbnails?.default?.url ||
-    null;
+  const thumbnailUrl = playlistMeta.snippet?.thumbnails?.default?.url || null;
   const publishedAt = playlistMeta.snippet?.publishedAt || null;
 
   let pageToken = "";
   let hasNextPage = true;
-  const orderedItems: Array<{
-    videoId: string | null;
-    startAt?: string;
-    endAt?: string;
-  }> = [];
   let lastAddedAt: string | null = null;
+  const orderedItems: PlaylistVideoEntry[] = [];
 
   while (hasNextPage) {
     const playlistItemsEndpoint =
@@ -391,20 +421,39 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
         .filter((entry): entry is string => Boolean(entry)),
     ),
   );
+
   const videoMeta = new Map<string, { durationSec: number; views: number }>();
+  const batches: string[] = [];
 
   for (let i = 0; i < uniqueVideoIds.length; i += 50) {
-    const batch = uniqueVideoIds.slice(i, i + 50).join(",");
-    const videosEndpoint =
-      "https://www.googleapis.com/youtube/v3/videos" +
-      `?part=contentDetails,statistics,snippet&id=${encodeURIComponent(batch)}` +
-      "&fields=items(id,contentDetails(duration),statistics(viewCount),snippet(publishedAt))";
+    batches.push(uniqueVideoIds.slice(i, i + 50).join(","));
+  }
 
-    const videosResponse = await youtubeFetchWithRotation(keys, videosEndpoint);
-    if (!videosResponse.ok) return toUserFacingError(videosResponse);
+  const batchResults = await mapWithConcurrency<string, VideoBatchResult>(
+    batches,
+    VIDEO_BATCH_CONCURRENCY,
+    async (batchIds) => {
+      const videosEndpoint =
+        "https://www.googleapis.com/youtube/v3/videos" +
+        `?part=contentDetails,statistics,snippet&id=${encodeURIComponent(batchIds)}` +
+        "&fields=items(id,contentDetails(duration),statistics(viewCount),snippet(publishedAt))";
 
-    const videosJson = (await videosResponse.json()) as VideosResponse;
-    for (const item of videosJson.items || []) {
+      const response = await youtubeFetchWithRotation(keys, videosEndpoint);
+      if (!response.ok) return { ok: false, response };
+
+      const jsonPayload = (await response.json()) as VideosResponse;
+      return { ok: true, json: jsonPayload };
+    },
+  );
+
+  const failedBatch = batchResults.find((entry) => !entry.ok);
+  if (failedBatch && !failedBatch.ok) {
+    return toUserFacingError(failedBatch.response);
+  }
+
+  for (const batch of batchResults) {
+    if (!batch.ok) continue;
+    for (const item of batch.json.items || []) {
       if (!item.id) continue;
       const durationSec = parseIsoDurationToSeconds(
         item.contentDetails?.duration || "PT0S",
@@ -429,8 +478,8 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
       continue;
     }
 
-    const video = videoMeta.get(videoId);
-    if (!video) {
+    const metadata = videoMeta.get(videoId);
+    if (!metadata) {
       orderedDurationsSec.push(0);
       unavailableVideoCount += 1;
       continue;
@@ -439,20 +488,27 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     const startSec = parseClipTimeToSeconds(item.startAt);
     const endSec = parseClipTimeToSeconds(item.endAt);
 
-    let effectiveDuration = video.durationSec;
+    let effectiveDuration = metadata.durationSec;
     if (startSec != null && endSec != null && endSec > startSec) {
-      effectiveDuration = Math.max(
-        0,
-        Math.min(video.durationSec, endSec) - startSec,
+      const boundedStart = Math.min(
+        Math.max(0, startSec),
+        metadata.durationSec,
       );
+      const boundedEnd = Math.min(Math.max(0, endSec), metadata.durationSec);
+      effectiveDuration = Math.max(0, boundedEnd - boundedStart);
     } else if (startSec != null) {
-      effectiveDuration = Math.max(0, video.durationSec - startSec);
+      const boundedStart = Math.min(
+        Math.max(0, startSec),
+        metadata.durationSec,
+      );
+      effectiveDuration = Math.max(0, metadata.durationSec - boundedStart);
     } else if (endSec != null) {
-      effectiveDuration = Math.max(0, Math.min(video.durationSec, endSec));
+      const boundedEnd = Math.min(Math.max(0, endSec), metadata.durationSec);
+      effectiveDuration = Math.max(0, boundedEnd);
     }
 
     orderedDurationsSec.push(effectiveDuration);
-    totalVideoViewsSum += video.views;
+    totalVideoViewsSum += metadata.views;
   }
 
   const totalDurationSec = orderedDurationsSec.reduce(
@@ -460,7 +516,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     0,
   );
 
-  const body = {
+  return {
     playlistId,
     title: playlistTitle,
     channelTitle,
@@ -474,11 +530,90 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     orderedDurationsSec,
     unavailableVideoCount,
   };
+}
 
-  const response = json(body, 200, {
-    "cache-control": "public, max-age=0, s-maxage=21600",
-  });
+/**
+ * GET /api/playlist?list=PLAYLIST_ID
+ *
+ * Returns a compact DTO optimized for range-based frontend calculations.
+ */
+export const onRequestGet = async ({
+  request,
+  env,
+  waitUntil,
+}: HandlerContext) => {
+  const requestUrl = new URL(request.url);
+  const playlistId = requestUrl.searchParams.get("list")?.trim() || "";
 
-  await cache.put(cacheKey, response.clone());
-  return response;
+  if (!playlistId) {
+    return json({ error: "Missing query param: list=PLAYLIST_ID" }, 400);
+  }
+
+  if (!isValidPlaylistId(playlistId)) {
+    return json({ error: "Invalid playlist ID format" }, 400);
+  }
+
+  const clientKey = getClientKey(request);
+  if (isRateLimited(clientKey)) {
+    return json(
+      { error: "Rate limit exceeded. Please try again shortly." },
+      429,
+      {
+        "retry-after": "60",
+      },
+    );
+  }
+
+  const keys = (env.YOUTUBE_KEYS || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  if (!keys.length) {
+    return json({ error: "Server misconfigured: YOUTUBE_KEYS is empty" }, 500);
+  }
+
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cacheUrl = new URL(request.url);
+  cacheUrl.search = `list=${encodeURIComponent(playlistId)}`;
+  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+
+  const buildAndStoreResponse = async () => {
+    const dtoOrError = await buildPlaylistDto(playlistId, keys);
+    if (dtoOrError instanceof Response) return dtoOrError;
+
+    const response = json(dtoOrError, 200, {
+      "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}, stale-while-revalidate=${STALE_REVALIDATE_SECONDS}`,
+      [CACHE_TIMESTAMP_HEADER]: String(Date.now()),
+    });
+
+    await cache.put(cacheKey, response.clone());
+    return response;
+  };
+
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const ageSeconds = getCachedAgeSeconds(cached);
+
+    if (ageSeconds <= FRESH_TTL_SECONDS) {
+      return withCacheStatus(cached, "HIT");
+    }
+
+    if (ageSeconds <= FRESH_TTL_SECONDS + STALE_REVALIDATE_SECONDS) {
+      if (waitUntil) {
+        waitUntil(
+          buildAndStoreResponse()
+            .then(() => undefined)
+            .catch(() => undefined),
+        );
+      } else {
+        const refreshed = await buildAndStoreResponse();
+        return withCacheStatus(refreshed, "MISS");
+      }
+      return withCacheStatus(cached, "STALE");
+    }
+  }
+
+  const response = await buildAndStoreResponse();
+  return withCacheStatus(response, "MISS");
 };
