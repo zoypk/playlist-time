@@ -136,60 +136,59 @@ function AppInner() {
       if (!targets.length) return;
       const forceRefresh = options?.forceRefresh ?? false;
 
+      const targetByRowId = new Map(targets.map((item) => [item.rowId, item]));
       const rowIdsByPlaylistId = new Map<string, string[]>();
 
       if (!forceRefresh) {
-        setRows((prev) =>
-          prev.map((entry) => {
-            const target = targets.find((item) => item.rowId === entry.id);
-            if (!target) return entry;
-
-            const cached = getFreshCachedPlaylist(playlistCacheRef.current, target.playlistId);
-            if (!cached) {
-              const ids = rowIdsByPlaylistId.get(target.playlistId) ?? [];
-              ids.push(target.rowId);
-              rowIdsByPlaylistId.set(target.playlistId, ids);
-              return {
-                ...entry,
-                status: "loading",
-                loadingLabel: "Fetching..."
-              };
-            }
-
-            const normalizedRange = normalizeRangeForTotal(
-              entry.rangeStart,
-              entry.rangeEnd,
-              cached.orderedDurationsSec.length
-            );
-
-            return {
-              ...entry,
-              status: "success",
-              loadingLabel: undefined,
-              data: cached,
-              errorType: undefined,
-              errorMessage: undefined,
-              rangeStart: normalizedRange.rangeStart,
-              rangeEnd: normalizedRange.rangeEnd
-            };
-          })
-        );
+        for (const target of targets) {
+          const cached = getFreshCachedPlaylist(playlistCacheRef.current, target.playlistId);
+          if (!cached) {
+            const ids = rowIdsByPlaylistId.get(target.playlistId) ?? [];
+            ids.push(target.rowId);
+            rowIdsByPlaylistId.set(target.playlistId, ids);
+          }
+        }
       } else {
         for (const target of targets) {
           const ids = rowIdsByPlaylistId.get(target.playlistId) ?? [];
           ids.push(target.rowId);
           rowIdsByPlaylistId.set(target.playlistId, ids);
         }
-
-        const rowIdSet = new Set(targets.map((item) => item.rowId));
-        setRows((prev) =>
-          prev.map((entry) =>
-            rowIdSet.has(entry.id)
-              ? { ...entry, status: "loading", loadingLabel: "Fetching..." }
-              : entry
-          )
-        );
       }
+
+      setRows((prev) =>
+        prev.map((entry) => {
+          const target = targetByRowId.get(entry.id);
+          if (!target) return entry;
+
+          if (!forceRefresh) {
+            const cached = getFreshCachedPlaylist(playlistCacheRef.current, target.playlistId);
+            if (cached) {
+              const normalizedRange = normalizeRangeForTotal(
+                entry.rangeStart,
+                entry.rangeEnd,
+                cached.orderedDurationsSec.length
+              );
+              return {
+                ...entry,
+                status: "success",
+                loadingLabel: undefined,
+                data: cached,
+                errorType: undefined,
+                errorMessage: undefined,
+                rangeStart: normalizedRange.rangeStart,
+                rangeEnd: normalizedRange.rangeEnd
+              };
+            }
+          }
+
+          return {
+            ...entry,
+            status: "loading",
+            loadingLabel: "Fetching..."
+          };
+        })
+      );
 
       const playlistIds = [...rowIdsByPlaylistId.keys()];
       if (!playlistIds.length) return;
@@ -217,7 +216,7 @@ function AppInner() {
 
         setRows((prev) =>
           prev.map((entry) => {
-            const target = targets.find((item) => item.rowId === entry.id);
+            const target = targetByRowId.get(entry.id);
             if (!target) return entry;
 
             const data = resultById.get(target.playlistId);
@@ -269,7 +268,7 @@ function AppInner() {
 
         setRows((prev) =>
           prev.map((entry) => {
-            const target = targets.find((item) => item.rowId === entry.id);
+            const target = targetByRowId.get(entry.id);
             if (!target) return entry;
             return {
               ...entry,

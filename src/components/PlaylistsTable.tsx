@@ -267,23 +267,6 @@ export default function PlaylistsTable({
         }
       },
       {
-        id: "published",
-        header: ({ column }) => (
-          <SortHeader label="Published" canSort={column.getCanSort()} sorted={column.getIsSorted()} title="Playlist publish date" />
-        ),
-        accessorFn: (row) => (row.data?.publishedAt ? new Date(row.data.publishedAt).getTime() : 0),
-        cell: ({ row }) => {
-          if (row.original.status === "loading") return <Skeleton className="h-4 w-20" />;
-          if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
-          return (
-            <div className="leading-tight">
-              <div className="font-mono text-sm text-gray-300">{formatDateLabel(row.original.data?.publishedAt ?? null)}</div>
-              <div className="text-[11px] text-gray-600">{formatRelativeTime(row.original.data?.publishedAt ?? null)}</div>
-            </div>
-          );
-        }
-      },
-      {
         id: "avg_length",
         header: ({ column }) => (
           <SortHeader
@@ -346,6 +329,24 @@ export default function PlaylistsTable({
         }
       });
     }
+
+    baseColumns.push({
+      id: "published",
+      header: ({ column }) => (
+        <SortHeader label="Published" canSort={column.getCanSort()} sorted={column.getIsSorted()} title="Playlist publish date" />
+      ),
+      accessorFn: (row) => (row.data?.publishedAt ? new Date(row.data.publishedAt).getTime() : 0),
+      cell: ({ row }) => {
+        if (row.original.status === "loading") return <Skeleton className="h-4 w-20" />;
+        if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
+        return (
+          <div className="leading-tight">
+            <div className="font-mono text-sm text-gray-300">{formatDateLabel(row.original.data?.publishedAt ?? null)}</div>
+            <div className="text-[11px] text-gray-600">{formatRelativeTime(row.original.data?.publishedAt ?? null)}</div>
+          </div>
+        );
+      }
+    });
 
     return baseColumns;
   }, [customSpeed, metricsById, onRangeApply, onRemoveRow, openRangeId, speedColumns]);
@@ -453,11 +454,10 @@ export default function PlaylistsTable({
         <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1480px]">
           <div className="footer-cell" />
           <div className="footer-cell text-sm font-bold uppercase tracking-wider text-primary">Total ({totals.successfulPlaylists} Playlists)</div>
-          <div className="footer-cell" />
-          <div className="footer-cell" />
-          <div className="footer-cell" />
-          <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
-          {speedColumns.map((speedColumn) => {
+        <div className="footer-cell" />
+        <div className="footer-cell" />
+        <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
+        {speedColumns.map((speedColumn) => {
             const value = totals.totalSelectedDuration / speedColumn.speed;
             const sharedClass = speedColumn.primary
               ? "footer-cell bg-primary/10 font-mono text-base font-bold text-primary"
@@ -472,8 +472,9 @@ export default function PlaylistsTable({
               </Tooltip>
             );
           })}
-        </div>
+        <div className="footer-cell" />
       </div>
-    </TooltipProvider>
+    </div>
+  </TooltipProvider>
   );
 }
