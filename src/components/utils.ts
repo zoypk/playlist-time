@@ -3,7 +3,7 @@ import type { PlaylistRow, PlaylistRowErrorType, RangeInfo, RowMetrics } from ".
 const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{10,100}$/;
 
 /** Playback speeds shown as fixed columns in the grid. */
-export const BUILT_IN_SPEEDS = [0.5, 1, 1.25, 1.5, 2] as const;
+export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75] as const;
 
 /** Clamps a numeric value to an inclusive range. */
 export function clamp(value: number, min: number, max: number) {
@@ -280,10 +280,11 @@ export function moveArrayItem<T>(items: T[], from: number, to: number) {
 
 /** Tooltip text for time delta vs 1x playback. */
 export function speedCellTooltip(oneXSeconds: number, speedSeconds: number) {
+  if (oneXSeconds <= 0) return;
   const delta = oneXSeconds - speedSeconds;
-  if (Math.abs(delta) < 1) return "Same as 1x";
-  if (delta > 0) return `Save ${formatDuration(delta)} vs 1x`;
-  return `Adds ${formatDuration(Math.abs(delta))} vs 1x`;
+  if (Math.abs(delta) < 1) return;
+  if (delta > 0) return `-${formatDuration(delta)}`;
+  return `+${formatDuration(Math.abs(delta))} `;
 }
 
 /** Maps API/network errors to display-friendly row error categories. */

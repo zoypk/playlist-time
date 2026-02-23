@@ -43,7 +43,15 @@ export default function SpeedControl({ value, onCommit, compact = false }: Speed
           max={3}
           className="h-auto w-16 border-none bg-transparent p-0 text-center font-mono text-xs font-semibold text-white focus-visible:ring-0"
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            const nextDraft = event.target.value;
+            setDraft(nextDraft);
+
+            const parsed = Number.parseFloat(nextDraft);
+            if (Number.isFinite(parsed)) {
+              commit(parsed);
+            }
+          }}
           onBlur={() => {
             const parsed = Number.parseFloat(draft);
             commit(parsed);

@@ -43,8 +43,8 @@ body {
     minmax(180px, 2.6fr)
     minmax(74px, 0.5fr)
     minmax(104px, 0.72fr)
-    repeat(5, minmax(68px, 0.45fr))
-    minmax(110px, 0.72fr)
+    repeat(4, minmax(68px, 0.45fr))
+    minmax(96px, 0.62fr)
     minmax(132px, 0.92fr);
 }
 

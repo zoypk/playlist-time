@@ -77,6 +77,19 @@ function SortHeader({
   );
 }
 
+// function formatPercentDelta(oneXSeconds: number, speedSeconds: number) {
+//   if (!oneXSeconds) return "0%";
+//   const delta = ((speedSeconds - oneXSeconds) / oneXSeconds) * 100;
+//   const rounded = Math.round(delta);
+//   return `${rounded > 0 ? "+" : ""}${rounded}%`;
+// }
+
+function formatSignedDurationDelta(oneXSeconds: number, speedSeconds: number) {
+  const deltaSeconds = speedSeconds - oneXSeconds;
+  const sign = deltaSeconds > 0 ? "+" : "-";
+  return `${sign}${formatDuration(Math.abs(deltaSeconds))}`;
+}
+
 /** Renders the standardized row-level error badge. */
 function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   const map: Record<string, string> = {
@@ -319,13 +332,23 @@ export default function PlaylistsTable({
           const selected = metrics?.selectedDurationSec ?? 0;
           const atSpeed = selected / speedColumn.speed;
           const atOneX = selected;
+          const deltaSeconds = atOneX - atSpeed;
+          const isSaving = deltaSeconds > 0;
+          const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
 
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className={`font-mono text-sm ${speedColumn.primary ? "font-semibold text-primary" : "text-gray-300"}`}>
-                  {formatDuration(atSpeed)}
-                </span>
+                <div className="leading-tight">
+                  <div className={`font-mono text-sm ${speedColumn.primary ? "font-semibold text-primary" : "text-gray-300"}`}>
+                    {formatDuration(atSpeed)}
+                  </div>
+                  {!speedColumn.primary && (
+                    <div className={`font-mono text-[10px] ${isSaving ? "text-emerald-400/90" : "text-amber-300/85"}`}>
+                      {deltaLabel}
+                    </div>
+                  )}
+                </div>
               </TooltipTrigger>
               <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
             </Tooltip>
@@ -376,20 +399,17 @@ export default function PlaylistsTable({
   const totals = React.useMemo(() => {
     let totalSelectedDuration = 0;
     let totalSelectedVideos = 0;
-    let successfulPlaylists = 0;
 
     for (const row of rows) {
       if (row.status !== "success") continue;
       const metrics = metricsById.get(row.id);
       if (!metrics) continue;
-      successfulPlaylists += 1;
       totalSelectedDuration += metrics.selectedDurationSec;
       totalSelectedVideos += metrics.range.selectedCount;
     }
 
     const avgLength = totalSelectedVideos > 0 ? totalSelectedDuration / totalSelectedVideos : 0;
     return {
-      successfulPlaylists,
       totalSelectedDuration,
       avgLength
     };
@@ -402,7 +422,7 @@ export default function PlaylistsTable({
   return (
     <TooltipProvider>
       <div className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl">
-        <div className="playlist-grid sticky top-0 z-20 min-w-[1080px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <div className="playlist-grid sticky top-0 z-20 min-w-[1020px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
           {table.getHeaderGroups().map((headerGroup) =>
             headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
@@ -419,7 +439,7 @@ export default function PlaylistsTable({
           )}
         </div>
 
-        <div className="min-w-[1080px] divide-y divide-border-dark bg-black">
+        <div className="min-w-[1020px] divide-y divide-border-dark bg-black">
           {table.getRowModel().rows.map((row) => {
             const draggable = true;
             return (
@@ -460,7 +480,7 @@ export default function PlaylistsTable({
           })}
         </div>
 
-        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1080px]">
+        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1020px]">
           <div className="footer-cell" />
           <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300">Total</div>
           <div className="footer-cell" />

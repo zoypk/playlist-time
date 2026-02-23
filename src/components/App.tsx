@@ -124,7 +124,7 @@ function AppInner() {
   const [rows, setRows] = React.useState<PlaylistRow[]>([]);
   const [defaultRangeStart, setDefaultRangeStart] = React.useState<number | null>(null);
   const [defaultRangeEnd, setDefaultRangeEnd] = React.useState<number | null>(null);
-  const [customSpeed, setCustomSpeed] = React.useState(2.5);
+  const [customSpeed, setCustomSpeed] = React.useState(2);
   const [sorting, setSorting] = React.useState<SortingState>(DEFAULT_SORTING);
 
   const visibleOrderRef = React.useRef<string[]>([]);
@@ -298,7 +298,11 @@ function AppInner() {
       setSorting(parsed.sorting?.length ? parsed.sorting : DEFAULT_SORTING);
       setDefaultRangeStart(parsed.defaultRangeStart ?? null);
       setDefaultRangeEnd(parsed.defaultRangeEnd ?? null);
-      setCustomSpeed(typeof parsed.customSpeed === "number" ? parsed.customSpeed : 2.5);
+      setCustomSpeed(
+        typeof parsed.customSpeed === "number" && parsed.customSpeed >= 0.1 && parsed.customSpeed <= 3
+          ? parsed.customSpeed
+          : 2
+      );
 
       if (!Array.isArray(parsed.playlists) || !parsed.playlists.length) {
         return;
@@ -441,13 +445,6 @@ function AppInner() {
     void hydrateRowsBatch(validRows);
   }, [defaultRangeEnd, defaultRangeStart, hydrateRowsBatch, inputText, rows]);
 
-  const refreshAllRows = React.useCallback(() => {
-    const targets = rows
-      .filter((row) => Boolean(row.playlistId))
-      .map((row) => ({ rowId: row.id, playlistId: row.playlistId as string }));
-    void hydrateRowsBatch(targets, { forceRefresh: true });
-  }, [hydrateRowsBatch, rows]);
-
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden">
@@ -527,16 +524,6 @@ function AppInner() {
 
       {rows.length > 0 && (
         <section className="space-y-3">
-          {/* <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-xs uppercase tracking-wide text-gray-500">Click headers to sort. On desktop, drag rows to override order.</div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" variant="outline" size="sm" className="h-8" onClick={refreshAllRows}>
-                Refresh data
-              </Button>
-            </div>
-          </div> */}
-
           <PlaylistsTable
             rows={rows}
             sorting={sorting}
