@@ -1,18 +1,6 @@
-export type OrderMode = "sorted" | "manual";
+import type { PlaylistDto } from "../shared/contracts";
 
-export type PlaylistApiDto = {
-  playlistId: string;
-  title: string;
-  channelTitle: string;
-  thumbnailUrl: string | null;
-  publishedAt: string | null;
-  lastAddedAt: string | null;
-  totalVideos: number;
-  totalDurationSec: number;
-  totalVideoViewsSum: number;
-  orderedDurationsSec: number[];
-  unavailableVideoCount?: number;
-};
+export type PlaylistApiDto = PlaylistDto;
 
 export type PlaylistRowStatus = "loading" | "success" | "error";
 
@@ -53,11 +41,9 @@ export type RowMetrics = {
 
 export type PersistedState = {
   version: 1;
-  orderMode: OrderMode;
   sorting: Array<{ id: string; desc: boolean }>;
   defaultRangeStart: number | null;
   defaultRangeEnd: number | null;
-  applyToAll: boolean;
   customSpeed: number;
   playlists: Array<{
     playlistId: string;
@@ -65,4 +51,28 @@ export type PersistedState = {
     rangeStart: number | null;
     rangeEnd: number | null;
   }>;
+};
+
+export type BatchPlaylistError = {
+  playlistId: string;
+  status: number;
+  error: string;
+};
+
+export type BatchPlaylistResponse = {
+  results: PlaylistApiDto[];
+  errors: BatchPlaylistError[];
+  meta: {
+    requested: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    truncated: boolean;
+    limit: number;
+    cache: {
+      hit: number;
+      miss: number;
+      bypass: number;
+    };
+  };
 };

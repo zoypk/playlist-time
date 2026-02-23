@@ -3,14 +3,17 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import type { SortingState } from "@tanstack/react-table";
 import { BarChart3, WandSparkles } from "lucide-react";
 
-import PlaylistsTable, { reorderRowsByKeyboard } from "./PlaylistsTable";
+import PlaylistsTable from "./PlaylistsTable";
 import SpeedControl from "./SpeedControl";
-import type { OrderMode, PersistedState, PlaylistApiDto, PlaylistRow } from "./types";
+import type {
+  BatchPlaylistResponse,
+  PersistedState,
+  PlaylistApiDto,
+  PlaylistRow,
+} from "./types";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Checkbox } from "./ui/checkbox";
+import { Card, CardHeader } from "./ui/card";
 import { Input } from "./ui/input";
-import { Separator } from "./ui/separator";
 import { Textarea } from "./ui/textarea";
 import {
   classifyRowError,
@@ -24,26 +27,61 @@ import {
 } from "./utils";
 
 const STORAGE_KEY = "playlist-time:v1";
+const PLAYLIST_CACHE_KEY = "playlist-time:playlist-cache:v1";
+const CLIENT_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const DEFAULT_SORTING: SortingState = [{ id: "speed_1", desc: true }];
 
-class PlaylistApiError extends Error {
-  status: number;
+type PlaylistCacheEntry = {
+  data: PlaylistApiDto;
+  fetchedAt: number;
+};
 
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = "PlaylistApiError";
-    this.status = status;
-  }
-}
+type PlaylistCacheMap = Record<string, PlaylistCacheEntry>;
 
 const API_BASE = (import.meta.env.PUBLIC_API_BASE ?? "").replace(/\/$/, "");
 
+function readPlaylistCache(): PlaylistCacheMap {
+  try {
+    const raw = localStorage.getItem(PLAYLIST_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as PlaylistCacheMap;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function writePlaylistCache(cache: PlaylistCacheMap) {
+  try {
+    localStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+function getFreshCachedPlaylist(cache: PlaylistCacheMap, playlistId: string) {
+  const entry = cache[playlistId];
+  if (!entry) return null;
+  if (!entry.data || !Number.isFinite(entry.fetchedAt)) return null;
+  if (Date.now() - entry.fetchedAt > CLIENT_CACHE_MAX_AGE_MS) return null;
+  return entry.data;
+}
+
 /**
- * Fetches playlist analysis payload from the backend proxy endpoint.
- * Throws a typed error so row-level error mapping can use HTTP status.
+ * Fetches multiple playlists in one request to reduce Worker invocations.
  */
-async function fetchPlaylist(playlistId: string): Promise<PlaylistApiDto> {
-  const response = await fetch(`${API_BASE}/api/playlist?list=${encodeURIComponent(playlistId)}`);
+async function fetchPlaylistsBatch(
+  playlistIds: string[],
+  options?: { refresh?: boolean }
+): Promise<BatchPlaylistResponse> {
+  const requestUrl = new URL(`${API_BASE}/api/playlists`, window.location.origin);
+  requestUrl.searchParams.set("lists", playlistIds.join(","));
+  if (options?.refresh) {
+    requestUrl.searchParams.set("refresh", "1");
+  }
+
+  const response = await fetch(requestUrl.toString());
 
   if (!response.ok) {
     const contentType = response.headers.get("content-type") || "";
@@ -60,10 +98,10 @@ async function fetchPlaylist(playlistId: string): Promise<PlaylistApiDto> {
       if (text) message = text;
     }
 
-    throw new PlaylistApiError(message, response.status);
+    throw new Error(message);
   }
 
-  return (await response.json()) as PlaylistApiDto;
+  return (await response.json()) as BatchPlaylistResponse;
 }
 
 /** Maps row error categories to user-facing copy. */
@@ -81,56 +119,54 @@ function getFriendlyError(type: PlaylistRow["errorType"], fallback?: string) {
  */
 function AppInner() {
   const queryClient = useQueryClient();
+  const playlistCacheRef = React.useRef<PlaylistCacheMap>({});
 
   const [inputText, setInputText] = React.useState("");
   const [rows, setRows] = React.useState<PlaylistRow[]>([]);
   const [defaultRangeStart, setDefaultRangeStart] = React.useState<number | null>(null);
   const [defaultRangeEnd, setDefaultRangeEnd] = React.useState<number | null>(null);
-  const [applyToAll, setApplyToAll] = React.useState(true);
   const [customSpeed, setCustomSpeed] = React.useState(2.5);
-  const [orderMode, setOrderMode] = React.useState<OrderMode>("sorted");
   const [sorting, setSorting] = React.useState<SortingState>(DEFAULT_SORTING);
 
   const visibleOrderRef = React.useRef<string[]>([]);
 
-  /** Fetches and hydrates a single row from loading to success/error state. */
-  const hydrateRow = React.useCallback(
-    async (rowId: string, playlistId: string) => {
-      setRows((prev) =>
-        prev.map((entry) =>
-          entry.id === rowId ? { ...entry, status: "loading", loadingLabel: "Fetching..." } : entry
-        )
-      );
+  /** Fetches and hydrates multiple rows in one backend batch call. */
+  const hydrateRowsBatch = React.useCallback(
+    async (targets: Array<{ rowId: string; playlistId: string }>, options?: { forceRefresh?: boolean }) => {
+      if (!targets.length) return;
+      const forceRefresh = options?.forceRefresh ?? false;
 
-      try {
-        const data = await queryClient.fetchQuery({
-          queryKey: ["playlist", playlistId],
-          queryFn: () => fetchPlaylist(playlistId),
-          staleTime: 1000 * 60 * 60 * 6,
-          gcTime: 1000 * 60 * 60 * 12
-        });
+      const rowIdsByPlaylistId = new Map<string, string[]>();
 
-        setRows((prev) =>
-          prev.map((entry) =>
-            entry.id === rowId ? { ...entry, status: "loading", loadingLabel: "Calculating..." } : entry
-          )
-        );
-
-        await Promise.resolve();
-
+      if (!forceRefresh) {
         setRows((prev) =>
           prev.map((entry) => {
-            if (entry.id !== rowId) return entry;
+            const target = targets.find((item) => item.rowId === entry.id);
+            if (!target) return entry;
+
+            const cached = getFreshCachedPlaylist(playlistCacheRef.current, target.playlistId);
+            if (!cached) {
+              const ids = rowIdsByPlaylistId.get(target.playlistId) ?? [];
+              ids.push(target.rowId);
+              rowIdsByPlaylistId.set(target.playlistId, ids);
+              return {
+                ...entry,
+                status: "loading",
+                loadingLabel: "Fetching..."
+              };
+            }
+
             const normalizedRange = normalizeRangeForTotal(
               entry.rangeStart,
               entry.rangeEnd,
-              data.orderedDurationsSec.length
+              cached.orderedDurationsSec.length
             );
+
             return {
               ...entry,
               status: "success",
               loadingLabel: undefined,
-              data,
+              data: cached,
               errorType: undefined,
               errorMessage: undefined,
               rangeStart: normalizedRange.rangeStart,
@@ -138,24 +174,112 @@ function AppInner() {
             };
           })
         );
-      } catch (error) {
-        const status = error instanceof PlaylistApiError ? error.status : 0;
-        const message = error instanceof Error ? error.message : "Unknown error";
-        const errorType = classifyRowError(status, message);
+      } else {
+        for (const target of targets) {
+          const ids = rowIdsByPlaylistId.get(target.playlistId) ?? [];
+          ids.push(target.rowId);
+          rowIdsByPlaylistId.set(target.playlistId, ids);
+        }
 
+        const rowIdSet = new Set(targets.map((item) => item.rowId));
         setRows((prev) =>
           prev.map((entry) =>
-            entry.id === rowId
-              ? {
-                  ...entry,
-                  status: "error",
-                  loadingLabel: undefined,
-                  data: undefined,
-                  errorType,
-                  errorMessage: getFriendlyError(errorType, message)
-                }
+            rowIdSet.has(entry.id)
+              ? { ...entry, status: "loading", loadingLabel: "Fetching..." }
               : entry
           )
+        );
+      }
+
+      const playlistIds = [...rowIdsByPlaylistId.keys()];
+      if (!playlistIds.length) return;
+
+      try {
+        const sortedIds = [...playlistIds].sort();
+        const batch = await queryClient.fetchQuery({
+          queryKey: ["playlists-batch", forceRefresh ? "refresh" : "normal", ...sortedIds],
+          queryFn: () => fetchPlaylistsBatch(sortedIds, { refresh: forceRefresh }),
+          staleTime: forceRefresh ? 0 : 1000 * 60 * 5,
+          gcTime: 1000 * 60 * 60
+        });
+
+        const now = Date.now();
+        for (const dto of batch.results) {
+          playlistCacheRef.current[dto.playlistId] = {
+            data: dto,
+            fetchedAt: now
+          };
+        }
+        writePlaylistCache(playlistCacheRef.current);
+
+        const resultById = new Map(batch.results.map((entry) => [entry.playlistId, entry]));
+        const errorById = new Map(batch.errors.map((entry) => [entry.playlistId, entry]));
+
+        setRows((prev) =>
+          prev.map((entry) => {
+            const target = targets.find((item) => item.rowId === entry.id);
+            if (!target) return entry;
+
+            const data = resultById.get(target.playlistId);
+            if (data) {
+              const normalizedRange = normalizeRangeForTotal(
+                entry.rangeStart,
+                entry.rangeEnd,
+                data.orderedDurationsSec.length
+              );
+
+              return {
+                ...entry,
+                status: "success",
+                loadingLabel: undefined,
+                data,
+                errorType: undefined,
+                errorMessage: undefined,
+                rangeStart: normalizedRange.rangeStart,
+                rangeEnd: normalizedRange.rangeEnd
+              };
+            }
+
+            const rowError = errorById.get(target.playlistId);
+            if (rowError) {
+              const errorType = classifyRowError(rowError.status, rowError.error);
+              return {
+                ...entry,
+                status: "error",
+                loadingLabel: undefined,
+                data: undefined,
+                errorType,
+                errorMessage: getFriendlyError(errorType, rowError.error)
+              };
+            }
+
+            return {
+              ...entry,
+              status: "error",
+              loadingLabel: undefined,
+              data: undefined,
+              errorType: "unknown",
+              errorMessage: "Unexpected batch response for this playlist."
+            };
+          })
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const errorType = classifyRowError(500, message);
+
+        setRows((prev) =>
+          prev.map((entry) => {
+            const target = targets.find((item) => item.rowId === entry.id);
+            if (!target) return entry;
+            return {
+              ...entry,
+              status: "error",
+              loadingLabel: undefined,
+              data: undefined,
+              errorType,
+              errorMessage: getFriendlyError(errorType, message)
+            };
+          })
         );
       }
     },
@@ -164,6 +288,8 @@ function AppInner() {
 
   /** Restores persisted rows/settings on first mount. */
   React.useEffect(() => {
+    playlistCacheRef.current = readPlaylistCache();
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
 
@@ -171,45 +297,63 @@ function AppInner() {
       const parsed = JSON.parse(raw) as PersistedState;
       if (parsed.version !== 1) return;
 
-      setOrderMode(parsed.orderMode ?? "sorted");
       setSorting(parsed.sorting?.length ? parsed.sorting : DEFAULT_SORTING);
       setDefaultRangeStart(parsed.defaultRangeStart ?? null);
       setDefaultRangeEnd(parsed.defaultRangeEnd ?? null);
-      setApplyToAll(parsed.applyToAll ?? true);
       setCustomSpeed(typeof parsed.customSpeed === "number" ? parsed.customSpeed : 2.5);
 
       if (!Array.isArray(parsed.playlists) || !parsed.playlists.length) {
         return;
       }
 
-      const restoredRows: PlaylistRow[] = parsed.playlists.map((entry) => ({
-        id: createRowId(),
-        input: entry.input || entry.playlistId,
-        playlistId: entry.playlistId,
-        status: "loading",
-        loadingLabel: "Fetching...",
-        rangeStart: entry.rangeStart,
-        rangeEnd: entry.rangeEnd
-      }));
+      const restoredRows: PlaylistRow[] = parsed.playlists.map((entry) => {
+        const cached = getFreshCachedPlaylist(playlistCacheRef.current, entry.playlistId);
+        if (cached) {
+          const normalizedRange = normalizeRangeForTotal(
+            entry.rangeStart,
+            entry.rangeEnd,
+            cached.orderedDurationsSec.length
+          );
+
+          return {
+            id: createRowId(),
+            input: entry.input || entry.playlistId,
+            playlistId: entry.playlistId,
+            status: "success",
+            data: cached,
+            rangeStart: normalizedRange.rangeStart,
+            rangeEnd: normalizedRange.rangeEnd
+          };
+        }
+
+        return {
+          id: createRowId(),
+          input: entry.input || entry.playlistId,
+          playlistId: entry.playlistId,
+          status: "loading",
+          loadingLabel: "Fetching...",
+          rangeStart: entry.rangeStart,
+          rangeEnd: entry.rangeEnd
+        };
+      });
 
       setRows(restoredRows);
-      for (const row of restoredRows) {
-        void hydrateRow(row.id, row.playlistId as string);
-      }
+      const pending = restoredRows
+        .filter((row) => row.status !== "success" && row.playlistId)
+        .map((row) => ({ rowId: row.id, playlistId: row.playlistId as string }));
+      void hydrateRowsBatch(pending);
     } catch {
       // Ignore invalid persisted state.
     }
-  }, [hydrateRow]);
+  }, [hydrateRowsBatch]);
 
   /** Persists relevant UI state to localStorage after each change. */
   React.useEffect(() => {
     const payload: PersistedState = {
       version: 1,
-      orderMode,
       sorting,
       defaultRangeStart,
       defaultRangeEnd,
-      applyToAll,
       customSpeed,
       playlists: rows
         .filter((row) => Boolean(row.playlistId))
@@ -222,7 +366,7 @@ function AppInner() {
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [applyToAll, customSpeed, defaultRangeEnd, defaultRangeStart, orderMode, rows, sorting]);
+  }, [customSpeed, defaultRangeEnd, defaultRangeStart, rows, sorting]);
 
   /** Parses pasted input, appends rows, and starts fetches for valid playlist IDs. */
   const analyzeInput = React.useCallback(() => {
@@ -262,14 +406,32 @@ function AppInner() {
 
       pendingIds.add(maybeId);
 
+      const baseRangeStart = defaultRangeStart;
+      const baseRangeEnd = defaultRangeEnd;
+      const cached = getFreshCachedPlaylist(playlistCacheRef.current, maybeId);
+
+      if (cached) {
+        const normalizedRange = normalizeRangeForTotal(baseRangeStart, baseRangeEnd, cached.orderedDurationsSec.length);
+        newRows.push({
+          id: rowId,
+          input: token,
+          playlistId: maybeId,
+          status: "success",
+          data: cached,
+          rangeStart: normalizedRange.rangeStart,
+          rangeEnd: normalizedRange.rangeEnd
+        });
+        continue;
+      }
+
       newRows.push({
         id: rowId,
         input: token,
         playlistId: maybeId,
         status: "loading",
         loadingLabel: "Fetching...",
-        rangeStart: applyToAll ? defaultRangeStart : null,
-        rangeEnd: applyToAll ? defaultRangeEnd : null
+        rangeStart: baseRangeStart,
+        rangeEnd: baseRangeEnd
       });
 
       validRows.push({ rowId, playlistId: maybeId });
@@ -278,76 +440,66 @@ function AppInner() {
     setRows((prev) => [...prev, ...newRows]);
     setInputText("");
 
-    for (const row of validRows) {
-      void hydrateRow(row.rowId, row.playlistId);
-    }
-  }, [applyToAll, defaultRangeEnd, defaultRangeStart, hydrateRow, inputText, rows]);
+    void hydrateRowsBatch(validRows);
+  }, [defaultRangeEnd, defaultRangeStart, hydrateRowsBatch, inputText, rows]);
 
-  /** Switches between sortable mode and manual (drag/keyboard) ordering mode. */
-  const toggleOrderMode = (nextMode: OrderMode) => {
-    if (nextMode === orderMode) return;
-
-    if (nextMode === "manual") {
-      setRows((prev) => reorderByIds(prev, visibleOrderRef.current));
-      setSorting([]);
-      setOrderMode("manual");
-      return;
-    }
-
-    setOrderMode("sorted");
-    setSorting((prev) => (prev.length ? prev : DEFAULT_SORTING));
-  };
+  const refreshAllRows = React.useCallback(() => {
+    const targets = rows
+      .filter((row) => Boolean(row.playlistId))
+      .map((row) => ({ rowId: row.id, playlistId: row.playlistId as string }));
+    void hydrateRowsBatch(targets, { forceRefresh: true });
+  }, [hydrateRowsBatch, rows]);
 
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardHeader>
-          <Textarea
-            value={inputText}
-            onChange={(event) => setInputText(event.target.value)}
-            placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
-            className="h-24 resize-none font-mono leading-relaxed"
-          />
-        </CardHeader>
-
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 bg-surface-dark p-3">
-          <div className="flex flex-wrap items-center gap-4 px-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Default range</span>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="Start"
-                  value={defaultRangeStart ?? ""}
-                  onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
-                  className="h-7 w-16 px-2 py-1 text-center text-xs"
-                />
-                <span className="text-gray-600">-</span>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="End"
-                  value={defaultRangeEnd ?? ""}
-                  onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
-                  className="h-7 w-16 px-2 py-1 text-center text-xs"
-                />
-              </div>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+            <div className="min-w-0 flex-1">
+              <Textarea
+                value={inputText}
+                onChange={(event) => setInputText(event.target.value)}
+                placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
+                className="h-24 resize-none font-mono leading-relaxed"
+              />
             </div>
 
-            <Separator orientation="vertical" className="mx-1" />
+            <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-[300px]">
+              <div className="mb-3">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Default range</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Start"
+                    value={defaultRangeStart ?? ""}
+                    onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
+                    className="h-8 w-20 px-2 py-1 text-center text-xs"
+                  />
+                  <span className="text-gray-600">-</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="End"
+                    value={defaultRangeEnd ?? ""}
+                    onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
+                    className="h-8 w-20 px-2 py-1 text-center text-xs"
+                  />
+                </div>
+              </div>
 
-            <label className="group flex cursor-pointer items-center gap-2">
-              <Checkbox checked={applyToAll} onCheckedChange={(checked) => setApplyToAll(Boolean(checked))} />
-              <span className="text-sm text-gray-400 transition group-hover:text-gray-200">Apply to all</span>
-            </label>
+              <Button
+                type="button"
+                onClick={analyzeInput}
+                size="lg"
+                className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
+              >
+                <BarChart3 className="size-4" />
+                Analyze
+              </Button>
+            </div>
           </div>
-
-          <Button type="button" onClick={analyzeInput} size="lg" className="gap-2 text-sm font-bold uppercase tracking-wide active:scale-[0.98]">
-            <BarChart3 className="size-4" />
-            Analyze
-          </Button>
-        </CardContent>
+        </CardHeader>
       </Card>
 
       {rows.length === 0 && (
@@ -378,36 +530,19 @@ function AppInner() {
       {rows.length > 0 && (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center rounded-lg border border-border-dark bg-surface-darker p-1 text-xs font-semibold uppercase tracking-wide">
-              <Button
-                type="button"
-                variant={orderMode === "sorted" ? "default" : "ghost"}
-                size="sm"
-                className="h-8 rounded px-3 py-1.5"
-                onClick={() => toggleOrderMode("sorted")}
-              >
-                Sorted
-              </Button>
-              <Button
-                type="button"
-                variant={orderMode === "manual" ? "default" : "ghost"}
-                size="sm"
-                className="h-8 rounded px-3 py-1.5"
-                onClick={() => toggleOrderMode("manual")}
-              >
-                Manual
-              </Button>
-            </div>
+            <div className="text-xs uppercase tracking-wide text-gray-500">Click headers to sort. Drag rows to override order.</div>
 
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs uppercase tracking-wide text-gray-500">Custom speed</span>
               <SpeedControl value={customSpeed} onCommit={setCustomSpeed} />
+              <Button type="button" variant="outline" size="sm" className="h-8" onClick={refreshAllRows}>
+                Refresh data
+              </Button>
             </div>
           </div>
 
           <PlaylistsTable
             rows={rows}
-            orderMode={orderMode}
             sorting={sorting}
             customSpeed={customSpeed}
             onSortingChange={setSorting}
@@ -429,18 +564,19 @@ function AppInner() {
             }}
             onReorderRows={(sourceId, destinationId) => {
               setRows((prev) => {
-                const sourceIndex = prev.findIndex((entry) => entry.id === sourceId);
-                const destinationIndex = prev.findIndex((entry) => entry.id === destinationId);
+                const base = sorting.length ? reorderByIds(prev, visibleOrderRef.current) : prev;
+                const sourceIndex = base.findIndex((entry) => entry.id === sourceId);
+                const destinationIndex = base.findIndex((entry) => entry.id === destinationId);
                 if (sourceIndex < 0 || destinationIndex < 0) return prev;
 
-                const next = [...prev];
+                const next = [...base];
                 const [item] = next.splice(sourceIndex, 1);
                 next.splice(destinationIndex, 0, item);
+                if (sorting.length) {
+                  setSorting([]);
+                }
                 return next;
               });
-            }}
-            onMoveRow={(rowId, direction) => {
-              setRows((prev) => reorderRowsByKeyboard(prev, rowId, direction));
             }}
             onVisibleOrderChange={(ids) => {
               visibleOrderRef.current = ids;
@@ -455,8 +591,8 @@ function AppInner() {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 60,
-      gcTime: 1000 * 60 * 60 * 6,
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60,
       retry: 1
     }
   }

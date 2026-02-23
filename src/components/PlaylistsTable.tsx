@@ -7,14 +7,14 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, GripVertical, Sigma, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Sigma, Trash2 } from "lucide-react";
 
 import RangePopover from "./RangePopover";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import type { OrderMode, PlaylistRow } from "./types";
+import type { PlaylistRow } from "./types";
 import {
   BUILT_IN_SPEEDS,
   formatAvgDuration,
@@ -23,20 +23,17 @@ import {
   formatRelativeTime,
   formatViews,
   getRowMetrics,
-  moveArrayItem,
   speedCellTooltip
 } from "./utils";
 
 type PlaylistsTableProps = {
   rows: PlaylistRow[];
-  orderMode: OrderMode;
   sorting: SortingState;
   customSpeed: number;
   onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
   onRangeApply: (rowId: string, start: number | null, end: number | null) => void;
   onRemoveRow: (rowId: string) => void;
   onReorderRows: (sourceId: string, destinationId: string) => void;
-  onMoveRow: (rowId: string, direction: -1 | 1) => void;
   onVisibleOrderChange: (ids: string[]) => void;
 };
 
@@ -100,14 +97,12 @@ function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
  */
 export default function PlaylistsTable({
   rows,
-  orderMode,
   sorting,
   customSpeed,
   onSortingChange,
   onRangeApply,
   onRemoveRow,
   onReorderRows,
-  onMoveRow,
   onVisibleOrderChange
 }: PlaylistsTableProps) {
   const [openRangeId, setOpenRangeId] = React.useState<string | null>(null);
@@ -138,41 +133,11 @@ export default function PlaylistsTable({
         id: "drag",
         header: "",
         enableSorting: false,
-        cell: ({ row, table }) => {
-          const index = row.index;
-          const canMoveUp = index > 0;
-          const canMoveDown = index < table.getRowModel().rows.length - 1;
-
+        cell: ({ row }) => {
           return (
             <div className="flex items-center justify-center text-gray-500">
               <div className="flex flex-col items-center">
-                <GripVertical className={`size-4 ${orderMode === "manual" ? "drag-handle text-gray-300" : "text-gray-700"}`} />
-                {orderMode === "manual" && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-5 text-gray-500 hover:text-white"
-                      onClick={() => onMoveRow(row.original.id, -1)}
-                      disabled={!canMoveUp}
-                      aria-label="Move row up"
-                    >
-                      <ChevronUp className="size-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-5 text-gray-500 hover:text-white"
-                      onClick={() => onMoveRow(row.original.id, 1)}
-                      disabled={!canMoveDown}
-                      aria-label="Move row down"
-                    >
-                      <ChevronDown className="size-3" />
-                    </Button>
-                  </>
-                )}
+                <GripVertical className="size-4 drag-handle text-gray-300" />
                 <Button
                   type="button"
                   variant="ghost"
@@ -383,7 +348,7 @@ export default function PlaylistsTable({
     }
 
     return baseColumns;
-  }, [customSpeed, metricsById, onMoveRow, onRangeApply, onRemoveRow, openRangeId, orderMode, speedColumns]);
+  }, [customSpeed, metricsById, onRangeApply, onRemoveRow, openRangeId, speedColumns]);
 
   const table = useReactTable({
     data: rows,
@@ -391,13 +356,13 @@ export default function PlaylistsTable({
     state: {
       sorting
     },
-    enableSorting: orderMode === "sorted",
+    enableSorting: true,
     onSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel()
   });
 
-  const visibleIds = React.useMemo(() => table.getRowModel().rows.map((entry) => entry.original.id), [table, rows, sorting, orderMode]);
+  const visibleIds = React.useMemo(() => table.getRowModel().rows.map((entry) => entry.original.id), [table, rows, sorting]);
 
   React.useEffect(() => {
     onVisibleOrderChange(visibleIds);
@@ -451,7 +416,7 @@ export default function PlaylistsTable({
 
         <div className="min-w-[1480px] divide-y divide-border-dark bg-black">
           {table.getRowModel().rows.map((row) => {
-            const draggable = orderMode === "manual";
+            const draggable = true;
             return (
               <div
                 key={row.id}
@@ -511,12 +476,4 @@ export default function PlaylistsTable({
       </div>
     </TooltipProvider>
   );
-}
-
-/** Moves a row up/down for keyboard-accessible manual ordering. */
-export function reorderRowsByKeyboard(rows: PlaylistRow[], rowId: string, direction: -1 | 1) {
-  const currentIndex = rows.findIndex((entry) => entry.id === rowId);
-  if (currentIndex < 0) return rows;
-  const targetIndex = currentIndex + direction;
-  return moveArrayItem(rows, currentIndex, targetIndex);
 }

@@ -5,16 +5,19 @@
  * - Keeps YouTube API keys server-side.
  * - Uses round-robin key selection for every outgoing API call.
  * - Retries across keys on quota/rate failures.
- * - Serves cached responses with stale-while-revalidate behavior.
+ * - Serves moderately fresh cached responses with manual refresh bypass.
  */
-interface Env {
+import type { PlaylistDto } from "../../src/shared/contracts";
+
+export type { PlaylistDto } from "../../src/shared/contracts";
+
+export interface Env {
   YOUTUBE_KEYS: string;
 }
 
 type HandlerContext = {
   request: Request;
   env: Env;
-  waitUntil?: (promise: Promise<unknown>) => void;
 };
 
 type YoutubeErrorPayload = {
@@ -34,6 +37,8 @@ type PlaylistMetaResponse = {
       publishedAt?: string;
       thumbnails?: {
         default?: { url?: string };
+        medium?: { url?: string };
+        high?: { url?: string };
       };
     };
     contentDetails?: {
@@ -47,6 +52,8 @@ type PlaylistItemsResponse = {
   items?: Array<{
     contentDetails?: {
       videoId?: string;
+      startAt?: string;
+      endAt?: string;
     };
     snippet?: {
       publishedAt?: string;
@@ -72,20 +79,6 @@ type PlaylistVideoEntry = {
   endAt?: string;
 };
 
-type PlaylistDto = {
-  playlistId: string;
-  title: string;
-  channelTitle: string;
-  thumbnailUrl: string | null;
-  publishedAt: string | null;
-  lastAddedAt: string | null;
-  totalVideos: number;
-  totalDurationSec: number;
-  totalVideoViewsSum: number;
-  orderedDurationsSec: number[];
-  unavailableVideoCount: number;
-};
-
 type VideoBatchResult =
   | { ok: true; json: VideosResponse }
   | { ok: false; response: Response };
@@ -104,17 +97,32 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 80;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-const FRESH_TTL_SECONDS = 6 * 60 * 60;
-const STALE_REVALIDATE_SECONDS = 24 * 60 * 60;
+export const FRESH_TTL_SECONDS = 15 * 60;
 const VIDEO_BATCH_CONCURRENCY = 4;
 
-const CACHE_TIMESTAMP_HEADER = "x-playlist-time-cached-at";
-const CACHE_STATUS_HEADER = "x-playlist-time-cache";
+export const CACHE_TIMESTAMP_HEADER = "x-playlist-time-cached-at";
+export const CACHE_STATUS_HEADER = "x-playlist-time-cache";
 
 let keyCursor = 0;
 
+/** Parses configured YouTube API keys from env string. */
+export function parseYoutubeKeys(raw: string) {
+  return (raw || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/** Builds canonical cache key for a playlist payload. */
+export function buildPlaylistCacheKey(request: Request, playlistId: string) {
+  const requestUrl = new URL(request.url);
+  const cacheUrl = new URL("/api/playlist", requestUrl.origin);
+  cacheUrl.search = `list=${encodeURIComponent(playlistId)}`;
+  return new Request(cacheUrl.toString(), { method: "GET" });
+}
+
 /** Creates a JSON response with standard content-type. */
-function json(
+export function json(
   data: unknown,
   status = 200,
   headers: Record<string, string> = {},
@@ -129,7 +137,10 @@ function json(
 }
 
 /** Adds cache status metadata without mutating the original response. */
-function withCacheStatus(response: Response, status: "MISS" | "HIT" | "STALE") {
+export function withCacheStatus(
+  response: Response,
+  status: "MISS" | "HIT" | "BYPASS",
+) {
   const headers = new Headers(response.headers);
   headers.set(CACHE_STATUS_HEADER, status);
   return new Response(response.body, {
@@ -139,7 +150,7 @@ function withCacheStatus(response: Response, status: "MISS" | "HIT" | "STALE") {
 }
 
 /** Derives a coarse client key for lightweight in-memory rate limiting. */
-function getClientKey(request: Request) {
+export function getClientKey(request: Request) {
   const ip =
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-forwarded-for") ||
@@ -151,7 +162,7 @@ function getClientKey(request: Request) {
  * Fixed-window rate limiter.
  * Returns true when the current client key exceeds request quota.
  */
-function isRateLimited(clientKey: string) {
+export function isRateLimited(clientKey: string) {
   const now = Date.now();
 
   for (const [key, bucket] of rateBuckets) {
@@ -171,7 +182,7 @@ function isRateLimited(clientKey: string) {
 }
 
 /** Basic playlist id format guard to reject obvious invalid input. */
-function isValidPlaylistId(playlistId: string) {
+export function isValidPlaylistId(playlistId: string) {
   return /^[A-Za-z0-9_-]{10,100}$/.test(playlistId);
 }
 
@@ -333,19 +344,10 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-function getCachedAgeSeconds(response: Response) {
-  const raw = response.headers.get(CACHE_TIMESTAMP_HEADER);
-  if (!raw) return Number.POSITIVE_INFINITY;
-  const createdAt = Number.parseInt(raw, 10);
-  if (!Number.isFinite(createdAt) || createdAt <= 0)
-    return Number.POSITIVE_INFINITY;
-  return (Date.now() - createdAt) / 1000;
-}
-
 /**
  * Fetches and composes the compact playlist DTO used by the frontend table.
  */
-async function buildPlaylistDto(
+export async function buildPlaylistDto(
   playlistId: string,
   keys: string[],
 ): Promise<PlaylistDto | Response> {
@@ -369,7 +371,11 @@ async function buildPlaylistDto(
 
   const playlistTitle = playlistMeta.snippet?.title || "Untitled playlist";
   const channelTitle = playlistMeta.snippet?.channelTitle || "Unknown channel";
-  const thumbnailUrl = playlistMeta.snippet?.thumbnails?.default?.url || null;
+  const thumbnailUrl =
+    playlistMeta.snippet?.thumbnails?.high?.url ||
+    playlistMeta.snippet?.thumbnails?.medium?.url ||
+    playlistMeta.snippet?.thumbnails?.default?.url ||
+    null;
   const publishedAt = playlistMeta.snippet?.publishedAt || null;
 
   let pageToken = "";
@@ -398,6 +404,8 @@ async function buildPlaylistDto(
     for (const item of items) {
       orderedItems.push({
         videoId: item.contentDetails?.videoId || null,
+        startAt: item.contentDetails?.startAt,
+        endAt: item.contentDetails?.endAt,
       });
 
       const addedAt = item.snippet?.publishedAt || null;
@@ -537,13 +545,10 @@ async function buildPlaylistDto(
  *
  * Returns a compact DTO optimized for range-based frontend calculations.
  */
-export const onRequestGet = async ({
-  request,
-  env,
-  waitUntil,
-}: HandlerContext) => {
+export const onRequestGet = async ({ request, env }: HandlerContext) => {
   const requestUrl = new URL(request.url);
   const playlistId = requestUrl.searchParams.get("list")?.trim() || "";
+  const forceRefresh = requestUrl.searchParams.get("refresh") === "1";
 
   if (!playlistId) {
     return json({ error: "Missing query param: list=PLAYLIST_ID" }, 400);
@@ -564,26 +569,21 @@ export const onRequestGet = async ({
     );
   }
 
-  const keys = (env.YOUTUBE_KEYS || "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  const keys = parseYoutubeKeys(env.YOUTUBE_KEYS);
 
   if (!keys.length) {
     return json({ error: "Server misconfigured: YOUTUBE_KEYS is empty" }, 500);
   }
 
   const cache = (caches as unknown as { default: Cache }).default;
-  const cacheUrl = new URL(request.url);
-  cacheUrl.search = `list=${encodeURIComponent(playlistId)}`;
-  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+  const cacheKey = buildPlaylistCacheKey(request, playlistId);
 
   const buildAndStoreResponse = async () => {
     const dtoOrError = await buildPlaylistDto(playlistId, keys);
     if (dtoOrError instanceof Response) return dtoOrError;
 
     const response = json(dtoOrError, 200, {
-      "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}, stale-while-revalidate=${STALE_REVALIDATE_SECONDS}`,
+      "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}`,
       [CACHE_TIMESTAMP_HEADER]: String(Date.now()),
     });
 
@@ -591,29 +591,13 @@ export const onRequestGet = async ({
     return response;
   };
 
-  const cached = await cache.match(cacheKey);
-  if (cached) {
-    const ageSeconds = getCachedAgeSeconds(cached);
-
-    if (ageSeconds <= FRESH_TTL_SECONDS) {
+  if (!forceRefresh) {
+    const cached = await cache.match(cacheKey);
+    if (cached) {
       return withCacheStatus(cached, "HIT");
-    }
-
-    if (ageSeconds <= FRESH_TTL_SECONDS + STALE_REVALIDATE_SECONDS) {
-      if (waitUntil) {
-        waitUntil(
-          buildAndStoreResponse()
-            .then(() => undefined)
-            .catch(() => undefined),
-        );
-      } else {
-        const refreshed = await buildAndStoreResponse();
-        return withCacheStatus(refreshed, "MISS");
-      }
-      return withCacheStatus(cached, "STALE");
     }
   }
 
   const response = await buildAndStoreResponse();
-  return withCacheStatus(response, "MISS");
+  return withCacheStatus(response, forceRefresh ? "BYPASS" : "MISS");
 };

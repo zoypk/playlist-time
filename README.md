@@ -106,7 +106,11 @@ bun run deploy:pages -- --project-name <your-pages-project-name>
 ## API notes
 
 - Endpoint: `GET /api/playlist?list=PLAYLIST_ID`
+- Force refresh: `GET /api/playlist?list=PLAYLIST_ID&refresh=1`
+- Batch endpoint: `GET /api/playlists?lists=ID1,ID2,ID3`
+- Batch endpoint currently processes up to 25 valid playlist IDs per request
 - Uses YouTube Data API v3 (`playlists.list`, `playlistItems.list`, `videos.list`)
-- Supports API key rotation via `YOUTUBE_KEYS`
-- Caches successful responses in Cloudflare cache for 6 hours
+- Supports round-robin API key usage + retry rotation via `YOUTUBE_KEYS`
+- Caches successful responses in Cloudflare edge cache for 15 minutes (cost-aware, not overly aggressive)
 - Includes lightweight request rate limiting and playlist ID validation
+- Client also keeps a short-lived local cache and provides manual refresh controls
