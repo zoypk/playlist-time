@@ -7,10 +7,6 @@ export type PlaylistDto = {
   channelTitle: string;
   thumbnailUrl: string | null;
   publishedAt: string | null;
-  lastAddedAt: string | null;
-  totalVideos: number;
-  totalDurationSec: number;
   totalVideoViewsSum: number;
   orderedDurationsSec: number[];
-  unavailableVideoCount?: number;
 };

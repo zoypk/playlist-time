@@ -16,7 +16,7 @@ export type PlaylistRow = {
   input: string;
   playlistId: string | null;
   status: PlaylistRowStatus;
-  loadingLabel?: "Fetching..." | "Calculating...";
+  loadingLabel?: "Fetching...";
   data?: PlaylistApiDto;
   errorType?: PlaylistRowErrorType;
   errorMessage?: string;

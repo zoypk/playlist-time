@@ -267,17 +267,6 @@ export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: s
   });
 }
 
-/** Moves one array item to another index and returns a new array. */
-export function moveArrayItem<T>(items: T[], from: number, to: number) {
-  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
-    return items;
-  }
-  const next = [...items];
-  const [entry] = next.splice(from, 1);
-  next.splice(to, 0, entry);
-  return next;
-}
-
 /** Tooltip text for time delta vs 1x playback. */
 export function speedCellTooltip(oneXSeconds: number, speedSeconds: number) {
   if (oneXSeconds <= 0) return;

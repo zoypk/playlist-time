@@ -41,9 +41,6 @@ type PlaylistMetaResponse = {
         high?: { url?: string };
       };
     };
-    contentDetails?: {
-      itemCount?: number;
-    };
   }>;
 };
 
@@ -54,9 +51,6 @@ type PlaylistItemsResponse = {
       videoId?: string;
       startAt?: string;
       endAt?: string;
-    };
-    snippet?: {
-      publishedAt?: string;
     };
   }>;
 };
@@ -318,7 +312,7 @@ async function toUserFacingError(response: Response) {
 /**
  * Runs async work with a bounded concurrency level.
  */
-async function mapWithConcurrency<T, R>(
+export async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
   worker: (item: T, index: number) => Promise<R>,
@@ -353,8 +347,8 @@ export async function buildPlaylistDto(
 ): Promise<PlaylistDto | Response> {
   const playlistMetaEndpoint =
     "https://www.googleapis.com/youtube/v3/playlists" +
-    `?part=snippet,contentDetails,status&id=${encodeURIComponent(playlistId)}` +
-    "&fields=items(id,snippet(title,channelTitle,publishedAt,thumbnails(default(url),medium(url),high(url))),contentDetails(itemCount),status(privacyStatus))";
+    `?part=snippet&id=${encodeURIComponent(playlistId)}` +
+    "&fields=items(id,snippet(title,channelTitle,publishedAt,thumbnails(default(url),medium(url),high(url))))";
 
   const metaResponse = await youtubeFetchWithRotation(
     keys,
@@ -380,15 +374,14 @@ export async function buildPlaylistDto(
 
   let pageToken = "";
   let hasNextPage = true;
-  let lastAddedAt: string | null = null;
   const orderedItems: PlaylistVideoEntry[] = [];
 
   while (hasNextPage) {
     const playlistItemsEndpoint =
       "https://www.googleapis.com/youtube/v3/playlistItems" +
-      `?part=contentDetails,snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50` +
+      `?part=contentDetails&playlistId=${encodeURIComponent(playlistId)}&maxResults=50` +
       (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "") +
-      "&fields=nextPageToken,items(contentDetails(videoId,startAt,endAt),snippet(publishedAt))";
+      "&fields=nextPageToken,items(contentDetails(videoId,startAt,endAt))";
 
     const playlistItemsResponse = await youtubeFetchWithRotation(
       keys,
@@ -407,15 +400,6 @@ export async function buildPlaylistDto(
         startAt: item.contentDetails?.startAt,
         endAt: item.contentDetails?.endAt,
       });
-
-      const addedAt = item.snippet?.publishedAt || null;
-      if (!addedAt) continue;
-      if (
-        !lastAddedAt ||
-        new Date(addedAt).getTime() > new Date(lastAddedAt).getTime()
-      ) {
-        lastAddedAt = addedAt;
-      }
     }
 
     pageToken = itemsJson.nextPageToken || "";
@@ -476,20 +460,17 @@ export async function buildPlaylistDto(
 
   const orderedDurationsSec: number[] = [];
   let totalVideoViewsSum = 0;
-  let unavailableVideoCount = 0;
 
   for (const item of orderedItems) {
     const videoId = item.videoId;
     if (!videoId) {
       orderedDurationsSec.push(0);
-      unavailableVideoCount += 1;
       continue;
     }
 
     const metadata = videoMeta.get(videoId);
     if (!metadata) {
       orderedDurationsSec.push(0);
-      unavailableVideoCount += 1;
       continue;
     }
 
@@ -519,24 +500,14 @@ export async function buildPlaylistDto(
     totalVideoViewsSum += metadata.views;
   }
 
-  const totalDurationSec = orderedDurationsSec.reduce(
-    (sum, value) => sum + value,
-    0,
-  );
-
   return {
     playlistId,
     title: playlistTitle,
     channelTitle,
     thumbnailUrl,
     publishedAt,
-    lastAddedAt,
-    totalVideos:
-      orderedItems.length || playlistMeta.contentDetails?.itemCount || 0,
-    totalDurationSec,
     totalVideoViewsSum,
     orderedDurationsSec,
-    unavailableVideoCount,
   };
 }
 

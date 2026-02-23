@@ -77,13 +77,6 @@ function SortHeader({
   );
 }
 
-// function formatPercentDelta(oneXSeconds: number, speedSeconds: number) {
-//   if (!oneXSeconds) return "0%";
-//   const delta = ((speedSeconds - oneXSeconds) / oneXSeconds) * 100;
-//   const rounded = Math.round(delta);
-//   return `${rounded > 0 ? "+" : ""}${rounded}%`;
-// }
-
 function formatSignedDurationDelta(oneXSeconds: number, speedSeconds: number) {
   const deltaSeconds = speedSeconds - oneXSeconds;
   const sign = deltaSeconds > 0 ? "+" : "-";
@@ -103,13 +96,7 @@ function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   return <Badge variant="destructive">{map[type ?? "unknown"]}</Badge>;
 }
 
-/**
- * Table renderer for playlist metrics.
- *
- * @remarks
- * - In `sorted` mode, TanStack sorting is enabled.
- * - In `manual` mode, sorting is disabled and row reordering is enabled.
- */
+/** Table renderer for playlist metrics. */
 export default function PlaylistsTable({
   rows,
   sorting,

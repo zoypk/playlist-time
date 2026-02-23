@@ -8,6 +8,7 @@ import {
   isRateLimited,
   isValidPlaylistId,
   json,
+  mapWithConcurrency,
   parseYoutubeKeys,
   type Env,
   type PlaylistDto,
@@ -63,32 +64,6 @@ async function parseResponseError(response: Response) {
 
   const text = (await response.clone().text()).trim();
   return text || "Request failed";
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<R>,
-) {
-  if (!items.length) return [] as R[];
-
-  const results = new Array<R>(items.length);
-  let index = 0;
-
-  const runners = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      while (true) {
-        const current = index;
-        index += 1;
-        if (current >= items.length) break;
-        results[current] = await worker(items[current], current);
-      }
-    },
-  );
-
-  await Promise.all(runners);
-  return results;
 }
 
 async function resolvePlaylistInBatch(
