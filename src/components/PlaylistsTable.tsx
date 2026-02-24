@@ -203,8 +203,11 @@ export default function PlaylistsTable({
                     src={item.data.thumbnailUrl}
                     alt={`${playlistTitle} thumbnail`}
                     className="h-full w-full object-cover opacity-85 transition group-hover:opacity-100"
+                    width={64}
+                    height={40}
                     loading={row.index < 4 ? "eager" : "lazy"}
-                    fetchPriority={row.index === 0 ? "high" : row.index < 4 ? "low" : "auto"}
+                    decoding="async"
+                    fetchPriority={row.index === 0 ? "high" : "auto"}
                   />
                 ) : (
                   <div className="h-full w-full bg-gradient-to-br from-black via-zinc-900 to-zinc-800" />
@@ -429,10 +432,20 @@ export default function PlaylistsTable({
               return (
                 <div
                   key={header.id}
-                  className={`header-cell ${canSort ? "cursor-pointer hover:bg-white/5" : ""} ${header.column.id === "speed_1" ? "bg-primary/5" : ""}`}
-                  onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                  className={`header-cell ${header.column.id === "speed_1" ? "bg-primary/5" : ""}`}
                 >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {canSort ? (
+                    <button
+                      type="button"
+                      onClick={header.column.getToggleSortingHandler()}
+                      className="w-full cursor-pointer text-left hover:text-gray-200"
+                      aria-label={`Sort by ${header.column.id}`}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </button>
+                  ) : (
+                    flexRender(header.column.columnDef.header, header.getContext())
+                  )}
                 </div>
               );
             })

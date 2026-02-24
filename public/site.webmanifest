@@ -1,0 +1,21 @@
+{
+  "name": "Playlist Time",
+  "short_name": "Playlist Time",
+  "description": "Calculate YouTube playlist duration and compare watch time across playback speeds.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0D15",
+  "theme_color": "#0A0D15",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
