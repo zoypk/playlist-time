@@ -15,6 +15,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
 import type { PlaylistRow } from "./types";
 import {
   BUILT_IN_SPEEDS,
@@ -222,7 +223,7 @@ export default function PlaylistsTable({
                     fetchPriority={row.index === 0 ? "high" : "auto"}
                   />
                 ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-black via-zinc-900 to-zinc-800" />
+                    <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
                 )}
               </div>
 
@@ -319,7 +320,7 @@ export default function PlaylistsTable({
         header:
           speedColumn.id === "speed_custom"
             ? () => (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col items-center justify-center gap-2">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-gray-300">{speedColumn.label}</div>
                 <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
               </div>
@@ -333,7 +334,7 @@ export default function PlaylistsTable({
                 title={speedColumn.speed === 1 ? "Baseline watch time" : "Time at this speed"}
               />
             ),
-        enableSorting: speedColumn.id !== "speed_custom",
+        enableSorting: speedColumn.id === "speed_1",
         accessorFn: (row) => {
           const metrics = metricsById.get(row.id);
           const selected = metrics?.selectedDurationSec ?? 0;
@@ -454,62 +455,52 @@ export default function PlaylistsTable({
 
   return (
     <TooltipProvider>
-      <div
-        className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl"
-        role="table"
-        aria-label="Playlist comparison table"
-        aria-colcount={table.getAllColumns().length}
-      >
-        <div className="sr-only" aria-live="polite">
-          {statusMessage}
-        </div>
-        <div
-          className="playlist-grid sticky top-0 z-20 min-w-[1020px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400"
-          role="rowgroup"
-        >
-          {table.getHeaderGroups().map((headerGroup) =>
-            headerGroup.headers.map((header) => {
-              const canSort = header.column.getCanSort();
-              const sorted = header.column.getIsSorted();
-              const ariaSort = canSort
-                ? sorted === "asc"
-                  ? "ascending"
-                  : sorted === "desc"
-                    ? "descending"
-                    : "none"
-                : undefined;
-              return (
-                <div
-                  key={header.id}
-                  className={`header-cell ${header.column.id === "speed_1" ? "bg-primary/5" : ""}`}
-                  role="columnheader"
-                  aria-sort={ariaSort}
-                >
-                  {canSort ? (
-                    <button
-                      type="button"
-                      onClick={header.column.getToggleSortingHandler()}
-                      className="w-full cursor-pointer text-left hover:text-gray-200"
-                      aria-label={getColumnAriaLabel(header.column.id)}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </button>
-                  ) : (
-                    flexRender(header.column.columnDef.header, header.getContext())
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+      <Table role="table" aria-label="Playlist comparison table" aria-colcount={table.getAllColumns().length}>
+        <TableHeader>
+          <TableRow role="row">
+            {table.getHeaderGroups().map((headerGroup) =>
+              headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort();
+                const sorted = header.column.getIsSorted();
+                const ariaSort = canSort
+                  ? sorted === "asc"
+                    ? "ascending"
+                    : sorted === "desc"
+                      ? "descending"
+                      : "none"
+                  : undefined;
 
-        <div className="min-w-[1020px] divide-y divide-border-dark bg-black" role="rowgroup">
+                return (
+                  <TableHead
+                    key={header.id}
+                    role="columnheader"
+                    aria-sort={ariaSort}
+                  >
+                    {canSort ? (
+                      <button
+                        type="button"
+                        onClick={header.column.getToggleSortingHandler()}
+                        className="w-full cursor-pointer text-left hover:text-gray-200"
+                        aria-label={getColumnAriaLabel(header.column.id)}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </TableHead>
+                );
+              })
+            )}
+          </TableRow>
+        </TableHeader>
+
+        <TableBody role="rowgroup">
           {table.getRowModel().rows.map((row) => {
             const draggable = true;
             return (
-              <div
+              <TableRow
                 key={row.id}
-                className="playlist-grid group transition-colors hover:bg-[#0a0a0a]"
                 role="row"
                 draggable={draggable}
                 onDragStart={() => {
@@ -531,46 +522,52 @@ export default function PlaylistsTable({
                 onDragEnd={() => setDraggedId(null)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <div
+                  <TableCell
                     key={cell.id}
-                    className={`body-cell ${cell.column.id === "speed_1" ? "bg-primary/5" : ""} ${cell.column.id === "playlist" ? "drag-handle" : ""
-                      }`}
                     role="cell"
+                    className={`${cell.column.id === "playlist" ? "drag-handle" : ""
+                      }`}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </div>
+                  </TableCell>
                 ))}
-              </div>
+              </TableRow>
             );
           })}
-        </div>
+        </TableBody>
 
-        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1020px]" role="row">
-          <div className="footer-cell" role="cell" />
-          <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300" role="cell">
-            Total
-          </div>
-          <div className="footer-cell" role="cell" />
-          <div className="footer-cell font-mono text-sm text-gray-300" role="cell">
-            {formatAvgDuration(totals.avgLength)}
-          </div>
-          {speedColumns.map((speedColumn) => {
-            const value = totals.totalSelectedDuration / speedColumn.speed;
-            const sharedClass = "footer-cell font-mono text-sm font-medium text-gray-300";
+        <TableFooter>
+          <TableRow role="row">
+            <TableCell role="cell" />
+            <TableCell role="cell" className="text-sm font-medium uppercase tracking-wider text-gray-300">
+              Total
+            </TableCell>
+            <TableCell role="cell" />
+            <TableCell role="cell" className="font-mono text-sm text-gray-300">
+              {formatAvgDuration(totals.avgLength)}
+            </TableCell>
+            {speedColumns.map((speedColumn) => {
+              const value = totals.totalSelectedDuration / speedColumn.speed;
+              const sharedClass = "font-mono text-sm font-medium text-gray-300";
 
-            return (
-              <Tooltip key={speedColumn.id}>
-                <TooltipTrigger asChild>
-                  <div className={sharedClass} role="cell">
-                    {formatDuration(value)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>{speedCellTooltip(totals.totalSelectedDuration, value)}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-          <div className="footer-cell" role="cell" />
-        </div>
+              return (
+                <Tooltip key={speedColumn.id}>
+                  <TooltipTrigger asChild>
+                    <TableCell role="cell" className={sharedClass}>
+                      {formatDuration(value)}
+                    </TableCell>
+                  </TooltipTrigger>
+                  <TooltipContent>{speedCellTooltip(totals.totalSelectedDuration, value)}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+            <TableCell role="cell" />
+          </TableRow>
+        </TableFooter>
+      </Table>
+
+      <div className="sr-only" aria-live="polite">
+        {statusMessage}
       </div>
     </TooltipProvider>
   );

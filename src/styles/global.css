@@ -36,16 +36,111 @@ body {
   background: #444;
 }
 
-.playlist-grid {
+/* Semantic table grid layout */
+table {
+  border-collapse: collapse;
+}
+
+thead tr,
+tbody tr,
+tfoot tr {
   display: grid;
   grid-template-columns:
     40px
-    minmax(180px, 2.6fr)
-    minmax(74px, 0.5fr)
+    minmax(200px, 2.6fr)
+    minmax(78px, 0.5fr)
     minmax(104px, 0.72fr)
-    repeat(4, minmax(68px, 0.45fr))
-    minmax(96px, 0.62fr)
-    minmax(132px, 0.92fr);
+    repeat(4, minmax(56px, 0.38fr))
+    minmax(110px, 0.75fr)
+    minmax(99px, 0.92fr);
+}
+
+@media (max-width: 768px) {
+  thead tr,
+  tbody tr,
+  tfoot tr {
+    grid-template-columns:
+      40px
+      minmax(120px, 2.6fr)
+      repeat(4, minmax(56px, 0.38fr))
+      minmax(110px, 0.75fr)
+      minmax(78px, 0.5fr)
+      minmax(104px, 0.72fr)
+      minmax(99px, 0.92fr);
+  }
+
+  /* Reorder cells: drag, playlist, speeds, views, avg_length, published */
+  thead th:nth-child(3),
+  tbody td:nth-child(3),
+  tfoot td:nth-child(3) {
+    order: 4;
+  }
+
+  thead th:nth-child(4),
+  tbody td:nth-child(4),
+  tfoot td:nth-child(4) {
+    order: 5;
+  }
+
+  thead th:nth-child(5),
+  tbody td:nth-child(5),
+  tfoot td:nth-child(5) {
+    order: 3;
+  }
+
+  thead th:nth-child(6),
+  tbody td:nth-child(6),
+  tfoot td:nth-child(6) {
+    order: 3;
+  }
+
+  thead th:nth-child(7),
+  tbody td:nth-child(7),
+  tfoot td:nth-child(7) {
+    order: 3;
+  }
+
+  thead th:nth-child(8),
+  tbody td:nth-child(8),
+  tfoot td:nth-child(8) {
+    order: 3;
+  }
+
+  thead th:nth-child(9),
+  tbody td:nth-child(9),
+  tfoot td:nth-child(9) {
+    order: 3;
+  }
+
+  thead th:nth-child(10),
+  tbody td:nth-child(10),
+  tfoot td:nth-child(10) {
+    order: 6;
+  }
+}
+
+thead th,
+tbody td,
+tfoot td {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid rgba(42, 42, 42, 0.3);
+  padding: 0.625rem;
+}
+
+thead th {
+  border-right-color: rgba(42, 42, 42, 0.4);
+}
+
+tfoot td {
+  border-right-color: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem;
+}
+
+thead th:last-child,
+tbody td:last-child,
+tfoot td:last-child {
+  border-right: none;
 }
 
 .glass-footer {
@@ -61,31 +156,4 @@ body {
 
 .drag-handle:active {
   cursor: grabbing;
-}
-
-.header-cell {
-  display: flex;
-  align-items: center;
-  border-right: 1px solid rgba(42, 42, 42, 0.4);
-  padding: 0.625rem;
-}
-
-.body-cell {
-  display: flex;
-  align-items: center;
-  border-right: 1px solid rgba(42, 42, 42, 0.3);
-  padding: 0.625rem;
-}
-
-.footer-cell {
-  display: flex;
-  align-items: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 0.75rem;
-}
-
-.header-cell:last-child,
-.body-cell:last-child,
-.footer-cell:last-child {
-  border-right: none;
 }

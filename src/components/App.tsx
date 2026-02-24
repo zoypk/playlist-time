@@ -2,6 +2,7 @@ import * as React from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
 import { BarChart3, WandSparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import PlaylistsTable from "./PlaylistsTable";
 import type {
@@ -14,6 +15,7 @@ import { Button } from "./ui/button";
 import { Card, CardHeader } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import { Toaster } from "./ui/sonner";
 import {
   classifyRowError,
   createRowId,
@@ -213,71 +215,67 @@ function AppInner() {
         const resultById = new Map(batch.results.map((entry) => [entry.playlistId, entry]));
         const errorById = new Map(batch.errors.map((entry) => [entry.playlistId, entry]));
 
+        // Show toasts for each failed playlist
+        for (const [playlistId, rowError] of errorById.entries()) {
+          const errorType = classifyRowError(rowError.status, rowError.error);
+          const errorMessage = getFriendlyError(errorType, rowError.error);
+          toast.error("Failed to fetch playlist", {
+            description: errorMessage
+          });
+        }
+
         setRows((prev) =>
-          prev.map((entry) => {
-            const target = targetByRowId.get(entry.id);
-            if (!target) return entry;
+          prev
+            .map((entry) => {
+              const target = targetByRowId.get(entry.id);
+              if (!target) return entry;
 
-            const data = resultById.get(target.playlistId);
-            if (data) {
-              const normalizedRange = normalizeRangeForTotal(
-                entry.rangeStart,
-                entry.rangeEnd,
-                data.orderedDurationsSec.length
-              );
+              const data = resultById.get(target.playlistId);
+              if (data) {
+                const normalizedRange = normalizeRangeForTotal(
+                  entry.rangeStart,
+                  entry.rangeEnd,
+                  data.orderedDurationsSec.length
+                );
 
-              return {
-                ...entry,
-                status: "success",
-                loadingLabel: undefined,
-                data,
-                errorType: undefined,
-                errorMessage: undefined,
-                rangeStart: normalizedRange.rangeStart,
-                rangeEnd: normalizedRange.rangeEnd
-              };
-            }
+                return {
+                  ...entry,
+                  status: "success",
+                  loadingLabel: undefined,
+                  data,
+                  errorType: undefined,
+                  errorMessage: undefined,
+                  rangeStart: normalizedRange.rangeStart,
+                  rangeEnd: normalizedRange.rangeEnd
+                };
+              }
 
-            const rowError = errorById.get(target.playlistId);
-            if (rowError) {
-              const errorType = classifyRowError(rowError.status, rowError.error);
-              return {
-                ...entry,
-                status: "error",
-                loadingLabel: undefined,
-                data: undefined,
-                errorType,
-                errorMessage: getFriendlyError(errorType, rowError.error)
-              };
-            }
+              // If there's an error, return null to filter out this row
+              if (errorById.has(target.playlistId)) {
+                return null;
+              }
 
-            return {
-              ...entry,
-              status: "error",
-              loadingLabel: undefined,
-              data: undefined,
-              errorType: "unknown",
-              errorMessage: "Unexpected batch response for this playlist."
-            };
-          })
+              // This shouldn't happen but handle unexpected batch response
+              toast.error("Failed to fetch playlist", {
+                description: "Unexpected batch response for this playlist."
+              });
+              return null;
+            })
+            .filter((entry): entry is PlaylistRow => entry !== null)
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         const errorType = classifyRowError(500, message);
+        const errorMessage = getFriendlyError(errorType, message);
 
+        // Show a single toast for the batch error
+        toast.error("Failed to fetch playlists", {
+          description: errorMessage
+        });
+
+        // Remove all rows that were being hydrated
         setRows((prev) =>
-          prev.map((entry) => {
-            const target = targetByRowId.get(entry.id);
-            if (!target) return entry;
-            return {
-              ...entry,
-              status: "error",
-              loadingLabel: undefined,
-              data: undefined,
-              errorType,
-              errorMessage: getFriendlyError(errorType, message)
-            };
-          })
+          prev.filter((entry) => !targetByRowId.has(entry.id))
         );
       }
     },
@@ -383,22 +381,14 @@ function AppInner() {
         .filter((entry): entry is string => Boolean(entry))
     );
     const pendingIds = new Set<string>();
+    let invalidCount = 0;
 
     for (const token of tokens) {
       const maybeId = tryExtractPlaylistId(token);
       const rowId = createRowId();
 
       if (!maybeId || !isValidPlaylistId(maybeId)) {
-        newRows.push({
-          id: rowId,
-          input: token,
-          playlistId: null,
-          status: "error",
-          errorType: "invalid",
-          errorMessage: "Invalid playlist URL or ID.",
-          rangeStart: null,
-          rangeEnd: null
-        });
+        invalidCount++;
         continue;
       }
 
@@ -437,6 +427,17 @@ function AppInner() {
       });
 
       validRows.push({ rowId, playlistId: maybeId });
+    }
+
+    if (invalidCount > 0) {
+      toast.error(
+        invalidCount === 1 
+          ? "Invalid playlist URL or ID" 
+          : `${invalidCount} invalid playlist URLs or IDs`,
+        {
+          description: "Please check your input and try again."
+        }
+      );
     }
 
     setRows((prev) => [...prev, ...newRows]);
@@ -581,6 +582,7 @@ function AppInner() {
           />
         </section>
       )}
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }
