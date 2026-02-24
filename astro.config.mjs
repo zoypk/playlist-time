@@ -11,7 +11,13 @@ export default defineConfig({
   vite: {
     server: {
       proxy: {
-        '/api': 'http://127.0.0.1:8788'
+        '/api': {
+          target: 'http://127.0.0.1:8788',
+          changeOrigin: false,
+          configure: (proxy) => {
+            proxy.on('error', () => {});
+          }
+        }
       }
     }
   }
