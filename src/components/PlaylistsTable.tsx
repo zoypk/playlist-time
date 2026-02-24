@@ -83,6 +83,18 @@ function formatSignedDurationDelta(oneXSeconds: number, speedSeconds: number) {
   return `${sign}${formatDuration(Math.abs(deltaSeconds))}`;
 }
 
+function getColumnAriaLabel(columnId: string) {
+  if (columnId === "playlist") return "Sort by playlist";
+  if (columnId === "views") return "Sort by views";
+  if (columnId === "avg_length") return "Sort by average length";
+  if (columnId === "published") return "Sort by publish date";
+  if (columnId.startsWith("speed_")) {
+    const speedLabel = columnId.replace("speed_", "").replace("_", ".");
+    return `Sort by ${speedLabel}x time`;
+  }
+  return `Sort by ${columnId}`;
+}
+
 /** Renders the standardized row-level error badge. */
 function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   const map: Record<string, string> = {
@@ -418,28 +430,67 @@ export default function PlaylistsTable({
     };
   }, [metricsById, rows]);
 
+  const statusMessage = React.useMemo(() => {
+    const counts = rows.reduce(
+      (acc, row) => {
+        if (row.status === "loading") acc.loading += 1;
+        if (row.status === "success") acc.success += 1;
+        if (row.status === "error") acc.error += 1;
+        return acc;
+      },
+      { loading: 0, success: 0, error: 0 }
+    );
+
+    if (!rows.length) return "No playlists loaded.";
+    if (counts.loading > 0) {
+      return `Loading ${counts.loading} playlist${counts.loading === 1 ? "" : "s"}. ${counts.success} ready, ${counts.error} with errors.`;
+    }
+    return `${counts.success} playlist${counts.success === 1 ? "" : "s"} ready. ${counts.error} with errors.`;
+  }, [rows]);
+
   if (!rows.length) {
     return null;
   }
 
   return (
     <TooltipProvider>
-      <div className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl">
-        <div className="playlist-grid sticky top-0 z-20 min-w-[1020px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+      <div
+        className="relative overflow-auto rounded-lg border border-border-dark bg-black shadow-2xl"
+        role="table"
+        aria-label="Playlist comparison table"
+        aria-colcount={table.getAllColumns().length}
+      >
+        <div className="sr-only" aria-live="polite">
+          {statusMessage}
+        </div>
+        <div
+          className="playlist-grid sticky top-0 z-20 min-w-[1020px] border-b border-border-dark bg-[#0a0a0a] text-[11px] font-bold uppercase tracking-wider text-gray-400"
+          role="rowgroup"
+        >
           {table.getHeaderGroups().map((headerGroup) =>
             headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
+              const sorted = header.column.getIsSorted();
+              const ariaSort = canSort
+                ? sorted === "asc"
+                  ? "ascending"
+                  : sorted === "desc"
+                    ? "descending"
+                    : "none"
+                : undefined;
               return (
                 <div
                   key={header.id}
                   className={`header-cell ${header.column.id === "speed_1" ? "bg-primary/5" : ""}`}
+                  role="columnheader"
+                  aria-sort={ariaSort}
                 >
                   {canSort ? (
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}
                       className="w-full cursor-pointer text-left hover:text-gray-200"
-                      aria-label={`Sort by ${header.column.id}`}
+                      aria-label={getColumnAriaLabel(header.column.id)}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </button>
@@ -452,13 +503,14 @@ export default function PlaylistsTable({
           )}
         </div>
 
-        <div className="min-w-[1020px] divide-y divide-border-dark bg-black">
+        <div className="min-w-[1020px] divide-y divide-border-dark bg-black" role="rowgroup">
           {table.getRowModel().rows.map((row) => {
             const draggable = true;
             return (
               <div
                 key={row.id}
                 className="playlist-grid group transition-colors hover:bg-[#0a0a0a]"
+                role="row"
                 draggable={draggable}
                 onDragStart={() => {
                   if (!draggable) return;
@@ -481,9 +533,9 @@ export default function PlaylistsTable({
                 {row.getVisibleCells().map((cell) => (
                   <div
                     key={cell.id}
-                    className={`body-cell ${cell.column.id === "speed_1" ? "bg-primary/5" : ""} ${
-                      cell.column.id === "playlist" ? "drag-handle" : ""
-                    }`}
+                    className={`body-cell ${cell.column.id === "speed_1" ? "bg-primary/5" : ""} ${cell.column.id === "playlist" ? "drag-handle" : ""
+                      }`}
+                    role="cell"
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </div>
@@ -493,11 +545,15 @@ export default function PlaylistsTable({
           })}
         </div>
 
-        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1020px]">
-          <div className="footer-cell" />
-          <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300">Total</div>
-          <div className="footer-cell" />
-          <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
+        <div className="playlist-grid glass-footer sticky bottom-0 z-10 min-w-[1020px]" role="row">
+          <div className="footer-cell" role="cell" />
+          <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300" role="cell">
+            Total
+          </div>
+          <div className="footer-cell" role="cell" />
+          <div className="footer-cell font-mono text-sm text-gray-300" role="cell">
+            {formatAvgDuration(totals.avgLength)}
+          </div>
           {speedColumns.map((speedColumn) => {
             const value = totals.totalSelectedDuration / speedColumn.speed;
             const sharedClass = "footer-cell font-mono text-sm font-medium text-gray-300";
@@ -505,13 +561,15 @@ export default function PlaylistsTable({
             return (
               <Tooltip key={speedColumn.id}>
                 <TooltipTrigger asChild>
-                  <div className={sharedClass}>{formatDuration(value)}</div>
+                  <div className={sharedClass} role="cell">
+                    {formatDuration(value)}
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>{speedCellTooltip(totals.totalSelectedDuration, value)}</TooltipContent>
               </Tooltip>
             );
           })}
-          <div className="footer-cell" />
+          <div className="footer-cell" role="cell" />
         </div>
       </div>
     </TooltipProvider>

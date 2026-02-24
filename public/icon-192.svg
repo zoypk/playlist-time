@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="Playlist Time icon">
+  <rect width="192" height="192" rx="32" fill="#0A0D15" />
+  <circle cx="96" cy="96" r="56" fill="#111827" stroke="#E11D48" stroke-width="6" />
+  <path d="M84 70L124 96L84 122Z" fill="#F97316" />
+</svg>

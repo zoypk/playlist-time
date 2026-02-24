@@ -451,12 +451,20 @@ function AppInner() {
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
             <div className="min-w-0 flex-1">
+              <label className="sr-only" htmlFor="playlist-input">
+                Playlist URLs or IDs
+              </label>
               <Textarea
+                id="playlist-input"
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
                 placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
                 className="h-24 resize-none font-mono leading-relaxed"
+                aria-describedby="playlist-input-hint"
               />
+              <p id="playlist-input-hint" className="sr-only">
+                Paste one or more YouTube playlist URLs or IDs separated by spaces, commas, or new lines.
+              </p>
             </div>
 
             <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-[300px]">
@@ -470,6 +478,8 @@ function AppInner() {
                     value={defaultRangeStart ?? ""}
                     onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
                     className="h-8 w-20 px-2 py-1 text-center text-xs"
+                    inputMode="numeric"
+                    aria-label="Default range start"
                   />
                   <span className="text-gray-600">-</span>
                   <Input
@@ -479,6 +489,8 @@ function AppInner() {
                     value={defaultRangeEnd ?? ""}
                     onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
                     className="h-8 w-20 px-2 py-1 text-center text-xs"
+                    inputMode="numeric"
+                    aria-label="Default range end"
                   />
                 </div>
               </div>
@@ -488,6 +500,7 @@ function AppInner() {
                 onClick={analyzeInput}
                 size="lg"
                 className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
+                disabled={!inputText.trim()}
               >
                 <BarChart3 className="size-4" />
                 Analyze
@@ -535,10 +548,10 @@ function AppInner() {
                 prev.map((entry) =>
                   entry.id === rowId
                     ? {
-                        ...entry,
-                        rangeStart: start,
-                        rangeEnd: end
-                      }
+                      ...entry,
+                      rangeStart: start,
+                      rangeEnd: end
+                    }
                     : entry
                 )
               );

@@ -90,6 +90,7 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
                 min={1}
                 max={Math.max(total, 1)}
                 value={start}
+                inputMode="numeric"
                 onChange={(event) => setStart(event.target.value)}
                 className="h-8 px-2 py-1 text-xs"
               />
@@ -101,6 +102,7 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
                 min={1}
                 max={Math.max(total, 1)}
                 value={end}
+                inputMode="numeric"
                 onChange={(event) => setEnd(event.target.value)}
                 className="h-8 px-2 py-1 text-xs"
               />
@@ -113,6 +115,7 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
               min={1}
               max={Math.max(total, 1)}
               value={presetCount}
+              inputMode="numeric"
               onChange={(event) => setPresetCount(event.target.value)}
               className="h-8 w-14 px-2 py-1 text-xs"
               aria-label="Preset range count"

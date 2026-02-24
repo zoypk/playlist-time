@@ -91,6 +91,37 @@
         "focus": true,
         "panel": "shared"
       }
+    },
+    {
+      "label": "Dev: Pages + Wrangler",
+      "dependsOn": [
+        "Astro: Dev Server",
+        "Wrangler: Pages Dev"
+      ],
+      "problemMatcher": [],
+      "group": "build",
+      "isBackground": true
+    },
+    {
+      "label": "Wrangler: Pages Dev",
+      "type": "shell",
+      "command": "bunx",
+      "args": [
+        "wrangler",
+        "pages",
+        "dev",
+        "./dist",
+        "--compatibility-date=2025-01-01"
+      ],
+      "problemMatcher": [],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
     }
   ]
 }
