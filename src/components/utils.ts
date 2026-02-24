@@ -34,7 +34,7 @@ export function parsePlaylistInput(text: string) {
  * Normalizes raw pasted tokens before ID extraction.
  * Handles missing protocols, wrapping punctuation, and encoded values.
  */
-export function normalizeInputToken(value: string) {
+function normalizeInputToken(value: string) {
   let token = value.trim();
   if (!token) return "";
 
