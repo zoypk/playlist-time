@@ -259,23 +259,17 @@ export default function PlaylistsTable({
         id: "views",
         header: ({ column }) => (
           <SortHeader
-            label={
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help">Views</span>
-                </TooltipTrigger>
-                <TooltipContent>Sum of views across videos (not YouTube playlist views)</TooltipContent>
-              </Tooltip>
-            }
+            label="Views"
             canSort={column.getCanSort()}
             sorted={column.getIsSorted()}
+            title="Sum of views across videos (not YouTube playlist views)"
           />
         ),
         accessorFn: (row) => row.data?.totalVideoViewsSum ?? 0,
         cell: ({ row }) => {
           if (row.original.status === "loading") return <Skeleton className="h-4 w-14" />;
           if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
-          return <span className="font-mono text-sm text-gray-300">{formatViews(row.original.data?.totalVideoViewsSum ?? 0)}</span>;
+          return <span className="text-sm font-medium text-gray-300">{formatViews(row.original.data?.totalVideoViewsSum ?? 0)}</span>;
         }
       },
       {
@@ -296,7 +290,7 @@ export default function PlaylistsTable({
           if (row.original.status === "loading") return <Skeleton className="h-4 w-14" />;
           if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
           const metrics = metricsById.get(row.original.id);
-          return <span className="font-mono text-sm text-gray-200">{formatAvgDuration(metrics?.avgLengthSec ?? 0)}</span>;
+          return <span className="text-sm font-medium text-gray-200">{formatAvgDuration(metrics?.avgLengthSec ?? 0)}</span>;
         }
       }
     ];
@@ -343,11 +337,11 @@ export default function PlaylistsTable({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="leading-tight">
-                  <div className={`font-mono text-sm ${speedColumn.primary ? "font-semibold text-primary" : "text-gray-300"}`}>
+                  <div className={`text-sm font-semibold ${speedColumn.primary ? "text-primary" : "text-gray-300"}`}>
                     {formatDuration(atSpeed)}
                   </div>
                   {!speedColumn.primary && (
-                    <div className={`font-mono text-[10px] ${isSaving ? "text-emerald-400/90" : "text-amber-300/85"}`}>
+                    <div className={`text-[10px] font-medium ${isSaving ? "text-emerald-400/90" : "text-amber-300/85"}`}>
                       {deltaLabel}
                     </div>
                   )}
@@ -371,7 +365,7 @@ export default function PlaylistsTable({
         if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
         return (
           <div className="leading-tight">
-            <div className="font-mono text-sm text-gray-300">{formatDateLabel(row.original.data?.publishedAt ?? null)}</div>
+            <div className="text-sm font-medium text-gray-300">{formatDateLabel(row.original.data?.publishedAt ?? null)}</div>
             <div className="text-[11px] text-gray-600">{formatRelativeTime(row.original.data?.publishedAt ?? null)}</div>
           </div>
         );
@@ -497,22 +491,14 @@ export default function PlaylistsTable({
           <div className="footer-cell" />
           <div className="footer-cell text-sm font-medium uppercase tracking-wider text-gray-300">Total</div>
           <div className="footer-cell" />
-          <div className="footer-cell font-mono text-sm text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
-          {speedColumns.map((speedColumn) => {
-            const value = totals.totalSelectedDuration / speedColumn.speed;
-            const sharedClass = "footer-cell font-mono text-sm font-medium text-gray-300";
-
-            return (
-              <Tooltip key={speedColumn.id}>
-                <TooltipTrigger asChild>
-                  <div className={sharedClass}>{formatDuration(value)}</div>
-                </TooltipTrigger>
-                <TooltipContent>{speedCellTooltip(totals.totalSelectedDuration, value)}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-          <div className="footer-cell" />
-        </div>
+          <div className="footer-cell text-sm font-medium text-gray-300">{formatAvgDuration(totals.avgLength)}</div>
+            {speedColumns.map((speedColumn) => {
+              const value = totals.totalSelectedDuration / speedColumn.speed;
+              const sharedClass = "footer-cell text-sm font-semibold text-gray-300";
+              return <div key={speedColumn.id} className={sharedClass}>{formatDuration(value)}</div>;
+            })}
+            <div className="footer-cell" />
+          </div>
       </div>
     </TooltipProvider>
   );

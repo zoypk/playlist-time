@@ -61,7 +61,7 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
         <Button
           type="button"
           variant="outline"
-          className="h-auto rounded-full border-primary/40 bg-black/50 px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-black hover:text-white"
+          className="h-auto rounded-full border-primary/40 bg-black/50 px-3 py-1 text-xs font-semibold text-gray-300 hover:border-primary hover:bg-black hover:text-white"
           disabled={disabled}
           title={
             range.unavailable

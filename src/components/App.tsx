@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import type { SortingState } from "@tanstack/react-table";
 import { BarChart3, WandSparkles } from "lucide-react";
 
-import PlaylistsTable from "./PlaylistsTable";
 import type {
   BatchPlaylistResponse,
   PersistedState,
@@ -29,6 +28,8 @@ const STORAGE_KEY = "playlist-time:v1";
 const PLAYLIST_CACHE_KEY = "playlist-time:playlist-cache:v1";
 const CLIENT_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const DEFAULT_SORTING: SortingState = [{ id: "speed_1", desc: true }];
+
+const PlaylistsTable = React.lazy(() => import("./PlaylistsTable"));
 
 type PlaylistCacheEntry = {
   data: PlaylistApiDto;
@@ -524,48 +525,56 @@ function AppInner() {
 
       {rows.length > 0 && (
         <section className="space-y-3">
-          <PlaylistsTable
-            rows={rows}
-            sorting={sorting}
-            customSpeed={customSpeed}
-            onCustomSpeedCommit={setCustomSpeed}
-            onSortingChange={setSorting}
-            onRangeApply={(rowId, start, end) => {
-              setRows((prev) =>
-                prev.map((entry) =>
-                  entry.id === rowId
-                    ? {
-                        ...entry,
-                        rangeStart: start,
-                        rangeEnd: end
-                      }
-                    : entry
-                )
-              );
-            }}
-            onRemoveRow={(rowId) => {
-              setRows((prev) => prev.filter((entry) => entry.id !== rowId));
-            }}
-            onReorderRows={(sourceId, destinationId) => {
-              setRows((prev) => {
-                const base = sorting.length ? reorderByIds(prev, visibleOrderRef.current) : prev;
-                const sourceIndex = base.findIndex((entry) => entry.id === sourceId);
-                const destinationIndex = base.findIndex((entry) => entry.id === destinationId);
-                if (sourceIndex < 0 || destinationIndex < 0) return prev;
+          <React.Suspense
+            fallback={
+              <div className="rounded-xl border border-border-dark bg-black/60 p-6 text-sm text-gray-300">
+                Loading results table...
+              </div>
+            }
+          >
+            <PlaylistsTable
+              rows={rows}
+              sorting={sorting}
+              customSpeed={customSpeed}
+              onCustomSpeedCommit={setCustomSpeed}
+              onSortingChange={setSorting}
+              onRangeApply={(rowId, start, end) => {
+                setRows((prev) =>
+                  prev.map((entry) =>
+                    entry.id === rowId
+                      ? {
+                          ...entry,
+                          rangeStart: start,
+                          rangeEnd: end
+                        }
+                      : entry
+                  )
+                );
+              }}
+              onRemoveRow={(rowId) => {
+                setRows((prev) => prev.filter((entry) => entry.id !== rowId));
+              }}
+              onReorderRows={(sourceId, destinationId) => {
+                setRows((prev) => {
+                  const base = sorting.length ? reorderByIds(prev, visibleOrderRef.current) : prev;
+                  const sourceIndex = base.findIndex((entry) => entry.id === sourceId);
+                  const destinationIndex = base.findIndex((entry) => entry.id === destinationId);
+                  if (sourceIndex < 0 || destinationIndex < 0) return prev;
 
-                const next = [...base];
-                const [item] = next.splice(sourceIndex, 1);
-                next.splice(destinationIndex, 0, item);
-                if (sorting.length) {
-                  setSorting([]);
-                }
-                return next;
-              });
-            }}
-            onVisibleOrderChange={(ids) => {
-              visibleOrderRef.current = ids;
-            }}
-          />
+                  const next = [...base];
+                  const [item] = next.splice(sourceIndex, 1);
+                  next.splice(destinationIndex, 0, item);
+                  if (sorting.length) {
+                    setSorting([]);
+                  }
+                  return next;
+                });
+              }}
+              onVisibleOrderChange={(ids) => {
+                visibleOrderRef.current = ids;
+              }}
+            />
+          </React.Suspense>
         </section>
       )}
     </div>
