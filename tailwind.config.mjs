@@ -15,9 +15,9 @@ export default {
         "border-contrast": "#000000",
       },
       fontFamily: {
-        display: ["Roboto", "sans-serif"],
+        display: ["Spline Sans", "sans-serif"],
         mono: [
-          "Roboto Mono",
+          "IBM Plex Mono",
           "ui-monospace",
           "SFMono-Regular",
           "Menlo",
