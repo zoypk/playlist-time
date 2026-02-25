@@ -13,7 +13,7 @@ type SpeedControlProps = {
 /**
  * Custom speed editor with native up/down arrows and commit-on-blur/enter behavior.
  */
-export default function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
+function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
   const [draft, setDraft] = React.useState(value.toFixed(2));
 
   React.useEffect(() => {
@@ -80,3 +80,5 @@ export default function SpeedControl({ value, onCommit, compact = false }: Speed
     </TooltipProvider>
   );
 }
+
+export default React.memo(SpeedControl);

@@ -6,20 +6,20 @@
       "type": "shell",
       "command": "bun",
       "args": ["run", "dev"],
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": "Local\\s+http://localhost:[0-9]+/"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*",
-            "endsPattern": "Local\\s+http://localhost:[0-9]+/"
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "Local\\s+http://localhost:[0-9]+/"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": {
+            "regexp": ".*"
+          },
+          "endsPattern": {
+            "regexp": "Local\\s+http://localhost:[0-9]+/"
           }
         }
-      ],
+      },
       "group": {
         "kind": "build",
         "isDefault": true

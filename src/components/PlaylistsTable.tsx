@@ -14,6 +14,7 @@ import SpeedControl from "./SpeedControl";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardHeader } from "./ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -232,43 +233,65 @@ export default function PlaylistsTable({
 
           return (
             <div className="flex w-full min-w-0 items-center gap-4 select-none">
-              <div className="hidden h-10 w-16 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60 md:block">
-                {item.data?.thumbnailUrl ? (
-                  <img
-                    src={item.data.thumbnailUrl}
-                    alt={`${playlistTitle} thumbnail`}
-                    className="h-full w-full object-cover opacity-85 transition group-hover:opacity-100"
-                    width={64}
-                    height={40}
-                    loading={row.index < 4 ? "eager" : "lazy"}
-                    decoding="async"
-                    fetchPriority={row.index === 0 ? "high" : "auto"}
-                  />
-                ) : (
-                    <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="hidden h-10 w-16 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60 cursor-pointer md:block">
+                    {item.data?.thumbnailUrl ? (
+                      <img
+                        src={item.data.thumbnailUrl}
+                        alt={`${playlistTitle} thumbnail`}
+                        className="h-full w-full object-cover opacity-85 transition group-hover:opacity-100"
+                        width={64}
+                        height={40}
+                        loading={row.index < 4 ? "eager" : "lazy"}
+                        decoding="async"
+                        fetchPriority={row.index === 0 ? "high" : "auto"}
+                      />
+                    ) : (
+                        <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
+                    )}
+                  </div>
+                </PopoverTrigger>
+                {item.data?.thumbnailUrl && (
+                  <PopoverContent side="right" className="w-fit border-border-dark bg-black p-0">
+                    <img
+                      src={item.data.thumbnailUrl}
+                      alt={`${playlistTitle} thumbnail`}
+                      className="rounded object-cover"
+                      width={320}
+                      height={200}
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </PopoverContent>
                 )}
-              </div>
+              </Popover>
 
               <div className="min-w-0 flex-1">
-                <h3
-                  className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary"
-                  aria-label={playlistTitle}
-                >
-                  {playlistUrl ? (
-                    <a
-                      href={playlistUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-primary"
-                      aria-label={`Open playlist: ${playlistTitle}`}
-                      onClick={(event) => event.stopPropagation()}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h3
+                      className="truncate text-sm font-semibold text-gray-100 transition group-hover:text-primary"
+                      aria-label={playlistTitle}
                     >
-                      {playlistTitle}
-                    </a>
-                  ) : (
-                    <span>{playlistTitle}</span>
-                  )}
-                </h3>
+                      {playlistUrl ? (
+                        <a
+                          href={playlistUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="cursor-pointer hover:text-primary"
+                          aria-label={`Open playlist: ${playlistTitle}`}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {playlistTitle}
+                        </a>
+                      ) : (
+                        <span>{playlistTitle}</span>
+                      )}
+                    </h3>
+                  </TooltipTrigger>
+                  <TooltipContent>{playlistTitle}</TooltipContent>
+                </Tooltip>
                 <p className="truncate text-xs text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
                 <p className="mt-1 text-[11px] text-gray-600">{item.loadingLabel ?? ""}</p>
                 {metrics && item.status === "success" && (
