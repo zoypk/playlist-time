@@ -809,11 +809,9 @@ export default function PlaylistsTable({
             return (
               <TableRow
                 key={row.id}
-                role="row"
                 draggable={draggable}
                 onClick={() => setSelectedRowId(row.original.id)}
                 onKeyDown={(event) => handleRowKeyDown(event, row.original.id)}
-                tabIndex={0}
                 className={`cursor-pointer transition-colors ${isSelected
                   ? "bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
                   : "focus:outline-none focus:ring-2 focus:ring-primary/30 ring-inset"
