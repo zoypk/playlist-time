@@ -325,7 +325,7 @@ const EXAMPLE_DATA_1 = {
   playlistId: "PLexample001",
   title: "Learn React in 100 Videos",
   channelTitle: "Code Academy",
-  thumbnailUrl: "https://via.placeholder.com/120x90?text=React+Tutorial",
+  thumbnailUrl: "https://placehold.co/120x90/ec1313/ffffff?text=React",
   publishedAt: "2023-06-15T10:00:00Z",
   totalVideoViewsSum: 2500000,
   orderedDurationsSec: [
@@ -334,15 +334,15 @@ const EXAMPLE_DATA_1 = {
     ...Array(30).fill(900), // 15 min videos
     ...Array(25).fill(1200), // 20 min videos
     ...Array(15).fill(1500), // 25 min videos
-    ...Array(10).fill(1800) // 30 min videos
-  ]
+    ...Array(10).fill(1800), // 30 min videos
+  ],
 };
 
 const EXAMPLE_DATA_2 = {
   playlistId: "PLexample002",
   title: "Web Dev Shorts",
   channelTitle: "Quick Code",
-  thumbnailUrl: "https://via.placeholder.com/120x90?text=Web+Dev+Shorts",
+  thumbnailUrl: "https://placehold.co/120x90/ec1313/ffffff?text=WebDev",
   publishedAt: "2024-01-20T14:30:00Z",
   totalVideoViewsSum: 1800000,
   orderedDurationsSec: [
@@ -350,8 +350,8 @@ const EXAMPLE_DATA_2 = {
     ...Array(20).fill(180), // 3 min videos
     ...Array(15).fill(300), // 5 min videos
     ...Array(10).fill(420), // 7 min videos
-    ...Array(5).fill(480) // 8 min videos
-  ]
+    ...Array(5).fill(480), // 8 min videos
+  ],
 };
 
 /** Returns example playlist rows with mock data for demonstration. */
