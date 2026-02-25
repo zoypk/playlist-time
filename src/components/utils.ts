@@ -319,3 +319,61 @@ export function normalizeRangeForTotal(
     rangeEnd: normalizedEnd
   };
 }
+
+/** Mock data for example playlists - realistic tutorial and shorts series. */
+const EXAMPLE_DATA_1 = {
+  playlistId: "PLexample001",
+  title: "Learn React in 100 Videos",
+  channelTitle: "Code Academy",
+  thumbnailUrl: "https://via.placeholder.com/120x90?text=React+Tutorial",
+  publishedAt: "2023-06-15T10:00:00Z",
+  totalVideoViewsSum: 2500000,
+  orderedDurationsSec: [
+    // 100 videos with realistic durations (mostly 10-20 mins, some longer)
+    ...Array(20).fill(600), // 10 min videos
+    ...Array(30).fill(900), // 15 min videos
+    ...Array(25).fill(1200), // 20 min videos
+    ...Array(15).fill(1500), // 25 min videos
+    ...Array(10).fill(1800) // 30 min videos
+  ]
+};
+
+const EXAMPLE_DATA_2 = {
+  playlistId: "PLexample002",
+  title: "Web Dev Shorts",
+  channelTitle: "Quick Code",
+  thumbnailUrl: "https://via.placeholder.com/120x90?text=Web+Dev+Shorts",
+  publishedAt: "2024-01-20T14:30:00Z",
+  totalVideoViewsSum: 1800000,
+  orderedDurationsSec: [
+    // 50 short videos (mostly 3-8 minutes)
+    ...Array(20).fill(180), // 3 min videos
+    ...Array(15).fill(300), // 5 min videos
+    ...Array(10).fill(420), // 7 min videos
+    ...Array(5).fill(480) // 8 min videos
+  ]
+};
+
+/** Returns example playlist rows with mock data for demonstration. */
+export function getExampleRows(): PlaylistRow[] {
+  return [
+    {
+      id: createRowId(),
+      input: `list=${EXAMPLE_DATA_1.playlistId}`,
+      playlistId: EXAMPLE_DATA_1.playlistId,
+      status: "success",
+      data: EXAMPLE_DATA_1,
+      rangeStart: null,
+      rangeEnd: null
+    },
+    {
+      id: createRowId(),
+      input: `list=${EXAMPLE_DATA_2.playlistId}`,
+      playlistId: EXAMPLE_DATA_2.playlistId,
+      status: "success",
+      data: EXAMPLE_DATA_2,
+      rangeStart: null,
+      rangeEnd: null
+    }
+  ];
+}

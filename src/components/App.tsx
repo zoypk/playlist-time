@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import {
   classifyRowError,
   createRowId,
+  getExampleRows,
   isValidPlaylistId,
   normalizeRangeForTotal,
   parsePlaylistInput,
@@ -552,14 +553,7 @@ function AppInner() {
                 type="button"
                 variant="outline"
                 className="mt-4 text-xs font-semibold uppercase tracking-wide"
-                onClick={() =>
-                  setInputText(
-                    [
-                      "https://www.youtube.com/playlist?list=PL590L5WQmH8fJ54F1f9FBM1v4M6V6Ak3M",
-                      "PLRqwX-V7Uu6Y7MDQ8xqNf4j2FfN6Q4jzP"
-                    ].join("\n")
-                  )
-                }
+                onClick={() => setRows(getExampleRows())}
               >
                 <WandSparkles className="mr-2 size-3.5" />
                 Example
