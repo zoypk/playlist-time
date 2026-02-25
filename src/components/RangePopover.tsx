@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import type { RangeInfo } from "./types";
 import { clamp, getRangePillLabel } from "./utils";
 
@@ -75,14 +76,15 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
 
       {!disabled && !range.unavailable && (
         <PopoverContent align="start" sideOffset={8} className="w-64">
-          <div className="mb-2 flex items-center justify-between border-b border-border-dark pb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Edit range</span>
-            <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Close range editor" onClick={() => onOpenChange(false)}>
-              <X className="size-3.5" />
-            </Button>
-          </div>
+          <TooltipProvider>
+            <div className="mb-2 flex items-center justify-between border-b border-border-dark pb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Edit range</span>
+              <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Close range editor" onClick={() => onOpenChange(false)}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-gray-500">
               Start
               <Input
@@ -141,36 +143,62 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
               aria-label="Preset range count"
               title="Press Enter to apply"
             />
-            <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("first")}>
-              First N
-            </Button>
-            <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("last")}>
-              Last N
-            </Button>
-            <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => onApply(null, null)}>
-              All
-            </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("first")}>
+                    First N
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Apply to first N videos</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("last")}>
+                    Last N
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Apply to last N videos</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => onApply(null, null)}>
+                    All
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Include all videos</TooltipContent>
+              </Tooltip>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setStart(range.start > 0 ? String(range.start) : "");
-                setEnd(range.end > 0 ? String(range.end) : "");
-              }}
-            >
-              Reset
-            </Button>
-            <Button type="button" size="sm" onClick={applyCurrent} className="gap-2">
-              Apply
-              <kbd className="hidden rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-semibold md:inline">
-                ↵
-              </kbd>
-            </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStart(range.start > 0 ? String(range.start) : "");
+                      setEnd(range.end > 0 ? String(range.end) : "");
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Revert to previous range</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" size="sm" onClick={applyCurrent} className="gap-2">
+                    Apply
+                    <kbd className="hidden rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-semibold md:inline">
+                      ↵
+                    </kbd>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Save and apply this range</TooltipContent>
+              </Tooltip>
           </div>
+          </TooltipProvider>
         </PopoverContent>
       )}
     </Popover>

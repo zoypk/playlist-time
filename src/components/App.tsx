@@ -16,6 +16,7 @@ import { Card, CardHeader } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Toaster } from "./ui/sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import {
   classifyRowError,
   createRowId,
@@ -478,42 +479,62 @@ function AppInner() {
 
             <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-[300px]">
               <div className="mb-3">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Default range</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs font-medium uppercase tracking-wide text-gray-400 cursor-help">Default range</span>
+                  </TooltipTrigger>
+                  <TooltipContent>Automatically apply this range to newly added playlists</TooltipContent>
+                </Tooltip>
                 <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="Start"
-                    value={defaultRangeStart ?? ""}
-                    onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
-                    className="h-8 w-20 px-2 py-1 text-center text-xs"
-                    inputMode="numeric"
-                    aria-label="Default range start"
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="Start"
+                        value={defaultRangeStart ?? ""}
+                        onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
+                        className="h-8 w-20 px-2 py-1 text-center text-xs"
+                        inputMode="numeric"
+                        aria-label="Default range start"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>First video index (1-based)</TooltipContent>
+                  </Tooltip>
                   <span className="text-gray-600">-</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="End"
-                    value={defaultRangeEnd ?? ""}
-                    onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
-                    className="h-8 w-20 px-2 py-1 text-center text-xs"
-                    inputMode="numeric"
-                    aria-label="Default range end"
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="End"
+                        value={defaultRangeEnd ?? ""}
+                        onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
+                        className="h-8 w-20 px-2 py-1 text-center text-xs"
+                        inputMode="numeric"
+                        aria-label="Default range end"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>Last video index (1-based)</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
-              <Button
-                type="button"
-                onClick={analyzeInput}
-                size="lg"
-                className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
-                disabled={!inputText.trim()}
-              >
-                <span className="text-lg">↵</span>
-                Analyze
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    onClick={analyzeInput}
+                    size="lg"
+                    className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
+                    disabled={!inputText.trim()}
+                  >
+                    <span className="text-lg">↵</span>
+                    Analyze
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Parse playlist links/IDs and fetch duration data</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -525,22 +546,27 @@ function AppInner() {
           <p className="mt-2 text-sm text-gray-400">
             Paste one or more playlist URLs/IDs above, then adjust custom speed and per-playlist ranges.
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4 text-xs font-semibold uppercase tracking-wide"
-            onClick={() =>
-              setInputText(
-                [
-                  "https://www.youtube.com/playlist?list=PL590L5WQmH8fJ54F1f9FBM1v4M6V6Ak3M",
-                  "PLRqwX-V7Uu6Y7MDQ8xqNf4j2FfN6Q4jzP"
-                ].join("\n")
-              )
-            }
-          >
-            <WandSparkles className="mr-2 size-3.5" />
-            Example
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 text-xs font-semibold uppercase tracking-wide"
+                onClick={() =>
+                  setInputText(
+                    [
+                      "https://www.youtube.com/playlist?list=PL590L5WQmH8fJ54F1f9FBM1v4M6V6Ak3M",
+                      "PLRqwX-V7Uu6Y7MDQ8xqNf4j2FfN6Q4jzP"
+                    ].join("\n")
+                  )
+                }
+              >
+                <WandSparkles className="mr-2 size-3.5" />
+                Example
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Load sample playlists to explore features</TooltipContent>
+          </Tooltip>
         </section>
       )}
 
@@ -608,7 +634,9 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppInner />
+      <TooltipProvider>
+        <AppInner />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

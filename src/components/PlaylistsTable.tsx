@@ -25,8 +25,7 @@ import {
   formatDuration,
   formatRelativeTime,
   formatViews,
-  getRowMetrics,
-  speedCellTooltip
+  getRowMetrics
 } from "./utils";
 
 type PlaylistsTableProps = {
@@ -70,9 +69,7 @@ function SortHeader({
   title?: string;
 }) {
   const icon = sorted === "desc" ? <ArrowDown className="size-3.5" /> : sorted === "asc" ? <ArrowUp className="size-3.5" /> : <ArrowUpDown className="size-3.5 opacity-50" />;
-  const fullTitle = canSort
-    ? `${title ? title + ". " : ""}Press Enter or Space to sort`
-    : title;
+  const fullTitle = title;
 
   return (
     <div className={`flex items-center justify-between gap-2 ${primary ? "font-extrabold text-primary" : ""}`} title={fullTitle}>
@@ -175,17 +172,21 @@ export default function PlaylistsTable({
                     </div>
                   </TooltipContent>
                 </Tooltip>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-6 text-gray-500 hover:bg-red-500/10 hover:text-red-300 md:mt-1"
-                  onClick={() => onRemoveRow(row.original.id)}
-                  aria-label="Remove playlist"
-                  title="Remove playlist"
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 text-gray-500 hover:bg-red-500/10 hover:text-red-300 md:mt-1"
+                      onClick={() => onRemoveRow(row.original.id)}
+                      aria-label="Remove playlist"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove playlist</TooltipContent>
+                </Tooltip>
               </div>
             </div>
           );
@@ -292,18 +293,18 @@ export default function PlaylistsTable({
       {
         id: "views",
         header: ({ column }) => (
-          <SortHeader
-            label={
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help">Views</span>
-                </TooltipTrigger>
-                <TooltipContent>Sum of views across videos (not YouTube playlist views)</TooltipContent>
-              </Tooltip>
-            }
-            canSort={column.getCanSort()}
-            sorted={column.getIsSorted()}
-          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="cursor-help">
+                <SortHeader
+                  label="Views"
+                  canSort={column.getCanSort()}
+                  sorted={column.getIsSorted()}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Sum of individual video view counts</TooltipContent>
+          </Tooltip>
         ),
         accessorFn: (row) => row.data?.totalVideoViewsSum ?? 0,
         cell: ({ row }) => {
@@ -315,15 +316,18 @@ export default function PlaylistsTable({
       {
         id: "avg_length",
         header: ({ column }) => (
-          <SortHeader
-            label={
-              <span className="inline-flex items-center gap-1">
-                Avg length
-              </span>
-            }
-            canSort={column.getCanSort()}
-            sorted={column.getIsSorted()}
-          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="cursor-help">
+                <SortHeader
+                  label="Avg length"
+                  canSort={column.getCanSort()}
+                  sorted={column.getIsSorted()}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Average video duration (click to sort)</TooltipContent>
+          </Tooltip>
         ),
         accessorFn: (row) => metricsById.get(row.id)?.avgLengthSec ?? 0,
         cell: ({ row }) => {
@@ -347,13 +351,19 @@ export default function PlaylistsTable({
               </div>
             )
             : ({ column }) => (
-              <SortHeader
-                label={speedColumn.label}
-                canSort={column.getCanSort()}
-                sorted={column.getIsSorted()}
-                primary={speedColumn.primary}
-                title={speedColumn.speed === 1 ? "Baseline watch time" : "Time at this speed"}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="cursor-help">
+                    <SortHeader
+                      label={speedColumn.label}
+                      canSort={column.getCanSort()}
+                      sorted={column.getIsSorted()}
+                      primary={speedColumn.primary}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{speedColumn.speed === 1 ? "Baseline: watch time at 1x speed" : `Time duration at ${speedColumn.label}`}</TooltipContent>
+              </Tooltip>
             ),
         enableSorting: speedColumn.id === "speed_1",
         accessorFn: (row) => {
@@ -374,21 +384,16 @@ export default function PlaylistsTable({
           const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
 
           return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="leading-tight">
-                  <div className={`font-mono text-sm ${speedColumn.primary ? "font-semibold text-primary" : "text-gray-300"}`}>
-                    {formatDuration(atSpeed)}
-                  </div>
-                  {!speedColumn.primary && (
-                    <div className={`font-mono text-[10px] ${isSaving ? "text-emerald-400/90" : "text-amber-300/85"}`}>
-                      {deltaLabel}
-                    </div>
-                  )}
+            <div className="leading-tight">
+              <div className={`font-mono text-sm ${speedColumn.primary ? "font-semibold text-primary" : "text-gray-300"}`}>
+                {formatDuration(atSpeed)}
+              </div>
+              {!speedColumn.primary && (
+                <div className={`font-mono text-[10px] ${isSaving ? "text-emerald-400/90" : "text-amber-300/85"}`}>
+                  {deltaLabel}
                 </div>
-              </TooltipTrigger>
-              <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
-            </Tooltip>
+              )}
+            </div>
           );
         }
       });
@@ -397,7 +402,14 @@ export default function PlaylistsTable({
     baseColumns.push({
       id: "published",
       header: ({ column }) => (
-        <SortHeader label="Published" canSort={column.getCanSort()} sorted={column.getIsSorted()} title="Playlist publish date" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="cursor-help">
+              <SortHeader label="Published" canSort={column.getCanSort()} sorted={column.getIsSorted()} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Latest upload date (click to sort)</TooltipContent>
+        </Tooltip>
       ),
       accessorFn: (row) => (row.data?.publishedAt ? new Date(row.data.publishedAt).getTime() : 0),
       cell: ({ row }) => {
@@ -619,18 +631,13 @@ export default function PlaylistsTable({
                 <div className="space-y-1">
                   {/* Custom if slower than 1x */}
                   {customSpeed < 1 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                          <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
-                          <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
-                          <span className="min-w-12 text-right text-[10px] font-semibold text-amber-300">
-                            {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{speedCellTooltip(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}</TooltipContent>
-                    </Tooltip>
+                    <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                      <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
+                      <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
+                      <span className="min-w-12 text-right text-[10px] font-semibold text-amber-300">
+                        {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
+                      </span>
+                    </div>
                   )}
                   
                   {/* 1x first */}
@@ -639,17 +646,12 @@ export default function PlaylistsTable({
                     const atSpeed = selected / speedColumn.speed;
 
                     return (
-                      <Tooltip key={speedColumn.id}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-2 rounded border border-primary/40 bg-primary/10 px-2 py-1.5 transition">
-                            <span className="min-w-8 text-xs font-bold text-primary">{speedColumn.label}</span>
-                            <span className="flex-1 text-right text-lg font-bold text-primary">
-                              {formatDuration(atSpeed)}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{speedCellTooltip(selected, atSpeed)}</TooltipContent>
-                      </Tooltip>
+                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-primary/40 bg-primary/10 px-2 py-1.5 transition">
+                        <span className="min-w-8 text-xs font-bold text-primary">{speedColumn.label}</span>
+                        <span className="flex-1 text-right text-lg font-bold text-primary">
+                          {formatDuration(atSpeed)}
+                        </span>
+                      </div>
                     );
                   })}
 
@@ -662,20 +664,15 @@ export default function PlaylistsTable({
                     const isSaving = atOneX - atSpeed > 0;
 
                     return (
-                      <Tooltip key={speedColumn.id}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                            <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
-                            <span className="flex-1 text-right text-lg font-bold text-gray-100">
-                              {formatDuration(atSpeed)}
-                            </span>
-                            <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
-                              {deltaLabel}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
-                      </Tooltip>
+                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                        <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
+                        <span className="flex-1 text-right text-lg font-bold text-gray-100">
+                          {formatDuration(atSpeed)}
+                        </span>
+                        <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
+                          {deltaLabel}
+                        </span>
+                      </div>
                     );
                   })}
 
@@ -688,37 +685,27 @@ export default function PlaylistsTable({
                     const isSaving = atOneX - atSpeed > 0;
 
                     return (
-                      <Tooltip key={speedColumn.id}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                            <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
-                            <span className="flex-1 text-right text-lg font-bold text-gray-100">
-                              {formatDuration(atSpeed)}
-                            </span>
-                            <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
-                              {deltaLabel}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
-                      </Tooltip>
+                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                        <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
+                        <span className="flex-1 text-right text-lg font-bold text-gray-100">
+                          {formatDuration(atSpeed)}
+                        </span>
+                        <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
+                          {deltaLabel}
+                        </span>
+                      </div>
                     );
                   })}
 
                   {/* Custom if faster than 1x */}
                   {customSpeed >= 1 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                          <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
-                          <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
-                          <span className="min-w-12 text-right text-[10px] font-semibold text-emerald-400">
-                            {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{speedCellTooltip(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}</TooltipContent>
-                    </Tooltip>
+                    <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                      <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
+                      <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
+                      <span className="min-w-12 text-right text-[10px] font-semibold text-emerald-400">
+                        {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -858,14 +845,9 @@ export default function PlaylistsTable({
               const sharedClass = "font-mono text-sm font-medium text-gray-300";
 
               return (
-                <Tooltip key={speedColumn.id}>
-                  <TooltipTrigger asChild>
-                    <TableCell role="cell" className={sharedClass}>
-                      {formatDuration(value)}
-                    </TableCell>
-                  </TooltipTrigger>
-                  <TooltipContent>{speedCellTooltip(totals.totalSelectedDuration, value)}</TooltipContent>
-                </Tooltip>
+                <TableCell key={speedColumn.id} role="cell" className={sharedClass}>
+                  {formatDuration(value)}
+                </TableCell>
               );
             })}
             <TableCell role="cell" />
