@@ -97,6 +97,9 @@ const VIDEO_BATCH_CONCURRENCY = 4;
 export const CACHE_TIMESTAMP_HEADER = "x-playlist-time-cached-at";
 export const CACHE_STATUS_HEADER = "x-playlist-time-cache";
 
+/** Map to track in-flight requests and prevent duplicate API calls for the same playlist. */
+const inflightRequests = new Map<string, Promise<Response>>();
+
 let keyCursor = 0;
 
 /** Parses configured YouTube API keys from env string. */
@@ -267,11 +270,21 @@ async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
     const response = await fetch(url.toString());
     last = response;
 
-    if (response.ok) return response;
+    if (response.ok) {
+      if (attempt > 0) {
+        console.log(`[YouTube API] Success after ${attempt} retry(ies)`);
+      }
+      return response;
+    }
 
     const parsedError = await parseYoutubeError(response);
     if (!shouldRotateKey(response.status, parsedError.reason)) {
+      console.log(`[YouTube API] Non-retryable error: ${response.status} ${parsedError.reason}`);
       return response;
+    }
+    
+    if (keys.length > 1) {
+      console.log(`[YouTube API] Rotating key (attempt ${attempt + 1}/${keys.length}): ${parsedError.reason}`);
     }
   }
 
@@ -427,8 +440,8 @@ export async function buildPlaylistDto(
     async (batchIds) => {
       const videosEndpoint =
         "https://www.googleapis.com/youtube/v3/videos" +
-        `?part=contentDetails,statistics,snippet&id=${encodeURIComponent(batchIds)}` +
-        "&fields=items(id,contentDetails(duration),statistics(viewCount),snippet(publishedAt))";
+        `?part=contentDetails,statistics&id=${encodeURIComponent(batchIds)}` +
+        "&fields=items(id,contentDetails(duration),statistics(viewCount))";
 
       const response = await youtubeFetchWithRotation(keys, videosEndpoint);
       if (!response.ok) return { ok: false, response };
@@ -550,8 +563,17 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   const cacheKey = buildPlaylistCacheKey(request, playlistId);
 
   const buildAndStoreResponse = async () => {
+    const startTime = Date.now();
+    console.log(`[Playlist] Building data for ${playlistId}`);
+    
     const dtoOrError = await buildPlaylistDto(playlistId, keys);
-    if (dtoOrError instanceof Response) return dtoOrError;
+    if (dtoOrError instanceof Response) {
+      console.log(`[Playlist] Error for ${playlistId}: ${dtoOrError.status}`);
+      return dtoOrError;
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[Playlist] Success ${playlistId}: ${dtoOrError.orderedDurationsSec.length} videos in ${duration}ms`);
 
     const response = json(dtoOrError, 200, {
       "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}`,
@@ -565,10 +587,28 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   if (!forceRefresh) {
     const cached = await cache.match(cacheKey);
     if (cached) {
+      console.log(`[Playlist] Cache HIT for ${playlistId}`);
       return withCacheStatus(cached, "HIT");
     }
   }
 
-  const response = await buildAndStoreResponse();
-  return withCacheStatus(response, forceRefresh ? "BYPASS" : "MISS");
+  // Check for in-flight request to prevent duplicate API calls
+  const existingRequest = inflightRequests.get(playlistId);
+  if (existingRequest) {
+    console.log(`[Playlist] Deduplicating request for ${playlistId}`);
+    const response = await existingRequest;
+    return withCacheStatus(response.clone(), forceRefresh ? "BYPASS" : "MISS");
+  }
+
+  // Create new request and track it
+  const requestPromise = buildAndStoreResponse();
+  inflightRequests.set(playlistId, requestPromise);
+
+  try {
+    const response = await requestPromise;
+    return withCacheStatus(response, forceRefresh ? "BYPASS" : "MISS");
+  } finally {
+    // Clean up in-flight tracking
+    inflightRequests.delete(playlistId);
+  }
 };

@@ -31,8 +31,8 @@ type BatchSuccess = {
   cacheStatus: "HIT" | "MISS" | "BYPASS";
 };
 
-const MAX_BATCH_IDS = 25;
-const PLAYLIST_BUILD_CONCURRENCY = 3;
+const MAX_BATCH_IDS = 50;
+const PLAYLIST_BUILD_CONCURRENCY = 6;
 
 function extractPlaylistId(input: string) {
   const trimmed = input.trim();
