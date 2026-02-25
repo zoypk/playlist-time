@@ -1,5 +1,5 @@
 import * as React from "react";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
 import { WandSparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -8,8 +8,8 @@ import PlaylistsTable from "./PlaylistsTable";
 import type {
   BatchPlaylistResponse,
   PersistedState,
-  PlaylistApiDto,
   PlaylistRow,
+  PlaylistApiDto,
 } from "./types";
 import { Button } from "./ui/button";
 import { Card, CardHeader } from "./ui/card";
@@ -18,38 +18,32 @@ import { Textarea } from "./ui/textarea";
 import { Toaster } from "./ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import {
-  classifyRowError,
   createRowId,
   getExampleRows,
-  isValidPlaylistId,
-  normalizeRangeForTotal,
   parsePlaylistInput,
   reorderByIds,
   toNullablePositiveInt,
-  tryExtractPlaylistId
+  tryExtractPlaylistId,
+  isValidPlaylistId,
+  classifyRowError,
+  normalizeRangeForTotal,
 } from "./utils";
+import { STORAGE_KEY, PLAYLIST_CACHE_KEY, CLIENT_CACHE_MAX_AGE_MS, DEFAULT_SORTING } from "../config/constants";
+import { getFriendlyError } from "../lib/ErrorHandler";
 
-const STORAGE_KEY = "playlist-time:v1";
-const PLAYLIST_CACHE_KEY = "playlist-time:playlist-cache:v1";
-const CLIENT_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
-const DEFAULT_SORTING: SortingState = [{ id: "speed_1", desc: true }];
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 60 }
+  }
+});
 
-type PlaylistCacheEntry = {
-  data: PlaylistApiDto;
-  fetchedAt: number;
-};
+type PlaylistCacheMap = Record<string, { data: PlaylistApiDto; fetchedAt: number }>;
 
-type PlaylistCacheMap = Record<string, PlaylistCacheEntry>;
-
-const API_BASE = (import.meta.env.PUBLIC_API_BASE ?? "").replace(/\/$/, "");
-
+// Simple cache helpers
 function readPlaylistCache(): PlaylistCacheMap {
   try {
-    const raw = localStorage.getItem(PLAYLIST_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as PlaylistCacheMap;
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed;
+    const stored = sessionStorage.getItem(PLAYLIST_CACHE_KEY);
+    return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
   }
@@ -57,28 +51,24 @@ function readPlaylistCache(): PlaylistCacheMap {
 
 function writePlaylistCache(cache: PlaylistCacheMap) {
   try {
-    localStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
+    sessionStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
   } catch {
-    // Ignore storage write failures.
+    // Ignore storage errors
   }
 }
 
-function getFreshCachedPlaylist(cache: PlaylistCacheMap, playlistId: string) {
-  const entry = cache[playlistId];
+function getFreshCachedPlaylist(cache: PlaylistCacheMap, id: string) {
+  const entry = cache[id];
   if (!entry) return null;
-  if (!entry.data || !Number.isFinite(entry.fetchedAt)) return null;
   if (Date.now() - entry.fetchedAt > CLIENT_CACHE_MAX_AGE_MS) return null;
   return entry.data;
 }
 
-/**
- * Fetches multiple playlists in one request to reduce Worker invocations.
- */
 async function fetchPlaylistsBatch(
   playlistIds: string[],
   options?: { refresh?: boolean }
 ): Promise<BatchPlaylistResponse> {
-  const requestUrl = new URL(`${API_BASE}/api/playlists`, window.location.origin);
+  const requestUrl = new URL("/api/playlists", window.location.origin);
   requestUrl.searchParams.set("lists", playlistIds.join(","));
   if (options?.refresh) {
     requestUrl.searchParams.set("refresh", "1");
@@ -106,22 +96,11 @@ async function fetchPlaylistsBatch(
 
   return (await response.json()) as BatchPlaylistResponse;
 }
-
-/** Maps row error categories to user-facing copy. */
-function getFriendlyError(type: PlaylistRow["errorType"], fallback?: string) {
-  if (type === "invalid") return "Invalid playlist URL or ID.";
-  if (type === "unavailable") return "Playlist is private, deleted, or unavailable.";
-  if (type === "quota") return "YouTube API quota exceeded. Try again in a bit.";
-  if (type === "network") return "Network/server error while fetching playlist.";
-  return fallback || "Unexpected error while loading this playlist.";
-}
-
 /**
  * Main analyzer container: input parsing, fetch orchestration,
  * local persistence, ordering mode, and table wiring.
  */
 function AppInner() {
-  const queryClient = useQueryClient();
   const playlistCacheRef = React.useRef<PlaylistCacheMap>({});
 
   const [inputText, setInputText] = React.useState("");
@@ -207,10 +186,7 @@ function AppInner() {
 
         const now = Date.now();
         for (const dto of batch.results) {
-          playlistCacheRef.current[dto.playlistId] = {
-            data: dto,
-            fetchedAt: now
-          };
+          playlistCacheRef.current[dto.playlistId] = { data: dto, fetchedAt: now };
         }
         writePlaylistCache(playlistCacheRef.current);
 
@@ -281,14 +257,14 @@ function AppInner() {
         );
       }
     },
-    [queryClient]
+    []
   );
 
   /** Restores persisted rows/settings on first mount. */
   React.useEffect(() => {
     playlistCacheRef.current = readPlaylistCache();
 
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return;
 
     try {
@@ -349,7 +325,7 @@ function AppInner() {
     }
   }, [hydrateRowsBatch]);
 
-  /** Persists relevant UI state to localStorage after each change. */
+  /** Persists relevant UI state to sessionStorage after each change. */
   React.useEffect(() => {
     const payload: PersistedState = {
       version: 1,
@@ -367,7 +343,7 @@ function AppInner() {
         }))
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [customSpeed, defaultRangeEnd, defaultRangeStart, rows, sorting]);
 
   /** Parses pasted input, appends rows, and starts fetches for valid playlist IDs. */
@@ -614,16 +590,6 @@ function AppInner() {
     </div>
   );
 }
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60,
-      retry: 1
-    }
-  }
-});
 
 export default function App() {
   return (

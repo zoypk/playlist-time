@@ -30,6 +30,7 @@ export type RangeInfo = {
   start: number;
   end: number;
   selectedCount: number;
+  selectedDuration: number;
   isAll: boolean;
 };
 

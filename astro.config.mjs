@@ -10,6 +10,7 @@ export default defineConfig({
   output: "static",
   vite: {
     build: {
+      sourcemap: false,
       // Chunk splitting: separate TanStack libraries into their own chunk for faster loads
       rollupOptions: {
         output: {
@@ -26,6 +27,7 @@ export default defineConfig({
       },
     },
     server: {
+      sourcemap: false,
       proxy: {
         "/api": {
           target: "http://127.0.0.1:8788",

@@ -12,23 +12,23 @@ interface FAQAccordionProps {
 
 export function FAQAccordion({ items }: FAQAccordionProps) {
   return (
-    <Accordion type="single" collapsible class="mt-3 space-y-2">
+    <Accordion type="single" collapsible className="mt-3 space-y-2">
       {items.map((item, index) => (
-        <AccordionItem key={`faq-${index}`} value={item.q} class="bg-black/40">
-          <AccordionTrigger class="text-sm font-medium text-gray-100 px-3 py-2">
+        <AccordionItem key={`faq-${index}`} value={item.q} className="bg-black/40">
+          <AccordionTrigger className="text-sm font-medium text-gray-100 px-3 py-2">
             {item.q}
           </AccordionTrigger>
-          <AccordionContent class="text-sm text-gray-400 px-3 py-2">
+          <AccordionContent className="text-sm text-gray-400 px-3 py-2">
             {item.a}
           </AccordionContent>
         </AccordionItem>
       ))}
 
-      <AccordionItem key="views-column" value="views-column" class="bg-black/40">
-        <AccordionTrigger class="text-sm font-medium text-gray-100 px-3 py-2">
+      <AccordionItem key="views-column" value="views-column" className="bg-black/40">
+        <AccordionTrigger className="text-sm font-medium text-gray-100 px-3 py-2">
           What does the Views column represent?
         </AccordionTrigger>
-        <AccordionContent class="text-sm text-gray-400 px-3 py-2">
+        <AccordionContent className="text-sm text-gray-400 px-3 py-2">
           Views are shown as extra context. If available, the number is derived from video-level view counts and summed across the playlist.
           Watch time is always calculated from video durations, not from views.
         </AccordionContent>

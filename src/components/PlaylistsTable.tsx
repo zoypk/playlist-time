@@ -784,7 +784,7 @@ export default function PlaylistsTable({
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
-                            header.column.getToggleSortingHandler()?.({} as any);
+                            header.column.getToggleSortingHandler()?.(event);
                           }
                         }}
                         className="w-full cursor-pointer text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"

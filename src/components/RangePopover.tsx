@@ -80,14 +80,17 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
             <div className="mb-2 flex items-center justify-between border-b border-border-dark pb-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Edit range</span>
               <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Close range editor" onClick={() => onOpenChange(false)}>
-                <X className="size-3.5" />
+                <X className="size-3.5" aria-hidden="true" />
               </Button>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-gray-500">
-              Start
+              <div className="flex flex-col gap-1">
+                <label htmlFor="range-start" className="text-[10px] uppercase tracking-wide text-gray-500">
+                  Start
+                </label>
               <Input
+                  id="range-start"
                 type="number"
                 min={1}
                 max={Math.max(total, 1)}
@@ -103,10 +106,13 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
                 className="h-8 px-2 py-1 text-xs"
                 title="Press Enter to apply"
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-gray-500">
-              End
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="range-end" className="text-[10px] uppercase tracking-wide text-gray-500">
+                  End
+                </label>
               <Input
+                  id="range-end"
                 type="number"
                 min={1}
                 max={Math.max(total, 1)}
@@ -122,7 +128,7 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
                 className="h-8 px-2 py-1 text-xs"
                 title="Press Enter to apply"
               />
-            </label>
+              </div>
           </div>
 
           <div className="mt-3 flex items-center gap-1">

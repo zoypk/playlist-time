@@ -185,6 +185,7 @@ export function getRangeInfo(row: PlaylistRow): RangeInfo {
       start: 1,
       end: 0,
       selectedCount: 0,
+      selectedDuration: 0,
       isAll: true
     };
   }
@@ -197,6 +198,7 @@ export function getRangeInfo(row: PlaylistRow): RangeInfo {
       start: 1,
       end: 0,
       selectedCount: 0,
+      selectedDuration: 0,
       isAll: true
     };
   }
@@ -207,6 +209,9 @@ export function getRangeInfo(row: PlaylistRow): RangeInfo {
   const start = clamp(requestedStart, 1, totalVideos);
   const end = clamp(Math.max(requestedEnd, start), start, totalVideos);
   const selectedCount = Math.max(0, end - start + 1);
+  
+  const selectedDurations = row.data.orderedDurationsSec.slice(start - 1, end);
+  const selectedDuration = selectedDurations.reduce((sum, dur) => sum + (dur || 0), 0);
 
   return {
     unavailable: false,
@@ -214,6 +219,7 @@ export function getRangeInfo(row: PlaylistRow): RangeInfo {
     start,
     end,
     selectedCount,
+    selectedDuration,
     isAll: start === 1 && end === totalVideos
   };
 }
