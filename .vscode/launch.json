@@ -2,10 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
       "name": "Development server",
       "request": "launch",
-      "type": "node-terminal"
+      "type": "bun",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "serverReadyAction": {
+        "pattern": "Local\\s+(http://localhost:[0-9]+/)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
     }
   ]
 }

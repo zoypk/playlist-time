@@ -92,7 +92,14 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
                 value={start}
                 inputMode="numeric"
                 onChange={(event) => setStart(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyCurrent();
+                  }
+                }}
                 className="h-8 px-2 py-1 text-xs"
+                title="Press Enter to apply"
               />
             </label>
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-gray-500">
@@ -104,7 +111,14 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
                 value={end}
                 inputMode="numeric"
                 onChange={(event) => setEnd(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyCurrent();
+                  }
+                }}
                 className="h-8 px-2 py-1 text-xs"
+                title="Press Enter to apply"
               />
             </label>
           </div>
@@ -117,8 +131,15 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
               value={presetCount}
               inputMode="numeric"
               onChange={(event) => setPresetCount(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyCurrent();
+                }
+              }}
               className="h-8 w-14 px-2 py-1 text-xs"
               aria-label="Preset range count"
+              title="Press Enter to apply"
             />
             <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("first")}>
               First N
@@ -143,8 +164,11 @@ export default function RangePopover({ range, isOpen, disabled, onOpenChange, on
             >
               Reset
             </Button>
-            <Button type="button" size="sm" onClick={applyCurrent}>
+            <Button type="button" size="sm" onClick={applyCurrent} className="gap-2">
               Apply
+              <kbd className="hidden rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-semibold md:inline">
+                ↵
+              </kbd>
             </Button>
           </div>
         </PopoverContent>

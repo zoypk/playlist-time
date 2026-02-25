@@ -70,9 +70,12 @@ function SortHeader({
   title?: string;
 }) {
   const icon = sorted === "desc" ? <ArrowDown className="size-3.5" /> : sorted === "asc" ? <ArrowUp className="size-3.5" /> : <ArrowUpDown className="size-3.5 opacity-50" />;
+  const fullTitle = canSort
+    ? `${title ? title + ". " : ""}Press Enter or Space to sort`
+    : title;
 
   return (
-    <div className={`flex items-center justify-between gap-2 ${primary ? "font-extrabold text-primary" : ""}`} title={title}>
+    <div className={`flex items-center justify-between gap-2 ${primary ? "font-extrabold text-primary" : ""}`} title={fullTitle}>
       <span className="truncate">{label}</span>
       {canSort && <span className={`${sorted ? "text-primary" : "text-gray-500"}`}>{icon}</span>}
     </div>
@@ -124,6 +127,7 @@ export default function PlaylistsTable({
 }: PlaylistsTableProps) {
   const [openRangeId, setOpenRangeId] = React.useState<string | null>(null);
   const [draggedId, setDraggedId] = React.useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
 
   const metricsById = React.useMemo(() => {
     const map = new Map<string, ReturnType<typeof getRowMetrics>>();
@@ -154,7 +158,23 @@ export default function PlaylistsTable({
           return (
             <div className="flex items-center justify-center text-gray-500">
               <div className="flex flex-col items-center">
-                <GripVertical className="hidden size-4 drag-handle text-gray-300 md:block" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="hidden md:flex md:flex-col md:items-center">
+                      <GripVertical className="size-4 drag-handle text-gray-300" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex flex-col gap-1 text-center">
+                      <span>Drag to reorder</span>
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400">
+                        <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px]">↑</kbd>
+                        <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px]">↓</kbd>
+                        <span>to move</span>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   type="button"
                   variant="ghost"
@@ -406,6 +426,32 @@ export default function PlaylistsTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel()
   });
+
+  const handleRowKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLTableRowElement>, rowId: string) => {
+      const visibleRows = table.getRowModel().rows;
+      const currentRowIndex = visibleRows.findIndex((r) => r.original.id === rowId);
+
+      if (event.key === "ArrowUp" && currentRowIndex > 0) {
+        event.preventDefault();
+        const targetRow = visibleRows[currentRowIndex - 1];
+        onReorderRows(rowId, targetRow.original.id);
+        if (sorting.length) {
+          onSortingChange([]);
+        }
+        setSelectedRowId(targetRow.original.id);
+      } else if (event.key === "ArrowDown" && currentRowIndex < visibleRows.length - 1) {
+        event.preventDefault();
+        const targetRow = visibleRows[currentRowIndex + 1];
+        onReorderRows(rowId, targetRow.original.id);
+        if (sorting.length) {
+          onSortingChange([]);
+        }
+        setSelectedRowId(targetRow.original.id);
+      }
+    },
+    [table, onReorderRows, onSortingChange, sorting.length]
+  );
 
   const visibleIds = React.useMemo(() => table.getRowModel().rows.map((entry) => entry.original.id), [table, rows, sorting]);
 
@@ -725,7 +771,13 @@ export default function PlaylistsTable({
                       <button
                         type="button"
                         onClick={header.column.getToggleSortingHandler()}
-                        className="w-full cursor-pointer text-left hover:text-gray-200"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            header.column.getToggleSortingHandler()?.({} as any);
+                          }
+                        }}
+                        className="w-full cursor-pointer text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
                         aria-label={getColumnAriaLabel(header.column.id)}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
@@ -741,16 +793,26 @@ export default function PlaylistsTable({
         </TableHeader>
 
         <TableBody role="rowgroup">
-          {table.getRowModel().rows.map((row) => {
+          {table.getRowModel().rows.map((row, rowIndex) => {
             const draggable = true;
+            const isSelected = selectedRowId === row.original.id;
             return (
               <TableRow
                 key={row.id}
                 role="row"
                 draggable={draggable}
+                onClick={() => setSelectedRowId(row.original.id)}
+                onKeyDown={(event) => handleRowKeyDown(event, row.original.id)}
+                tabIndex={0}
+                className={`cursor-pointer transition-colors ${isSelected
+                  ? "bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
+                  : "focus:outline-none focus:ring-2 focus:ring-primary/30 ring-inset"
+                  }`}
+                title="Click to select row, use arrow keys to move up/down"
                 onDragStart={() => {
                   if (!draggable) return;
                   setDraggedId(row.original.id);
+                  setSelectedRowId(row.original.id);
                 }}
                 onDragOver={(event) => {
                   if (!draggable || !draggedId || draggedId === row.original.id) return;
@@ -810,6 +872,19 @@ export default function PlaylistsTable({
           </TableRow>
         </TableFooter>
       </Table>
+
+      <div className="mt-2 hidden items-center gap-3 text-[10px] text-gray-500 md:flex">
+        <span className="font-medium text-gray-400">Keyboard shortcuts:</span>
+        <div className="flex items-center gap-1">
+          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↑</kbd>
+          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↓</kbd>
+          <span>move rows</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↵</kbd>
+          <span>sort columns</span>
+        </div>
+      </div>
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
-import { BarChart3, WandSparkles } from "lucide-react";
+import { WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import PlaylistsTable from "./PlaylistsTable";
@@ -459,12 +459,20 @@ function AppInner() {
                 id="playlist-input"
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
+                onKeyDown={(event) => {
+                  if ((event.key === "Enter" && event.ctrlKey) || event.key === "Enter") {
+                    if (inputText.trim()) {
+                      event.preventDefault();
+                      analyzeInput();
+                    }
+                  }
+                }}
                 placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
                 className="h-24 resize-none font-mono leading-relaxed"
                 aria-describedby="playlist-input-hint"
               />
               <p id="playlist-input-hint" className="sr-only">
-                Paste one or more YouTube playlist URLs or IDs separated by spaces, commas, or new lines.
+                Paste one or more YouTube playlist URLs or IDs separated by spaces, commas, or new lines. Press Ctrl+Enter or use the Analyze button to submit.
               </p>
             </div>
 
@@ -503,7 +511,7 @@ function AppInner() {
                 className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
                 disabled={!inputText.trim()}
               >
-                <BarChart3 className="size-4" />
+                <span className="text-lg">↵</span>
                 Analyze
               </Button>
             </div>
