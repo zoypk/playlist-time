@@ -6,46 +6,56 @@ import "../styles/global.css";
 const site = "https://yttime.pages.dev";
 const canonical = new URL("/", site).toString();
 const socialImage = new URL("/og.svg", site).toString();
-const socialImageAlt = "Playlist Time: YouTube playlist duration calculator";
+const socialImageAlt = "Playlist Time — free YouTube playlist duration calculator";
 
-const title = "Playlist Time — YouTube Playlist Duration Tool";
+const title = "YouTube Playlist Duration Calculator — Playlist Time";
 const description =
-  "Calculate total YouTube playlist duration, edit video ranges, and compare watch time across multiple playlists at 1x, 1.25x, 1.5x, 1.75x, and custom speed.";
+  "Calculate YouTube playlist duration instantly. See total playlist time at 1x, 1.25x, 1.5x, and custom speeds. Free online playlist calculator — no login needed.";
 
 const faq = [
   {
-    q: "What is Playlist Time?",
-    a: "Playlist Time is a YouTube playlist duration and watch-time calculator. It adds up video lengths in one or more playlists and shows how long they take to watch at different playback speeds."
+    q: "How do I calculate YouTube playlist duration?",
+    a: "Paste one or more playlist URLs into the input field and click Analyze. Playlist Time fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
   },
   {
-    q: "How do you calculate YouTube playlist duration?",
-    a: "We fetch the videos in the playlist and sum their durations. The totals are then converted into estimates at 1x, 1.25x, 1.5x, 1.75x, and your custom speed."
+    q: "How long is a YouTube playlist at 1.5x speed?",
+    a: "Playlist Time divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, or set any custom speed."
   },
   {
     q: "Can I compare multiple playlists at once?",
-    a: "Yes. Paste multiple playlist URLs or IDs and you’ll get one row per playlist plus a combined totals row."
+    a: "Yes. Paste multiple playlist URLs or IDs separated by a new line, comma, or space. The playlist watch time calculator creates one row per playlist plus a combined totals row so you can compare them side by side."
   },
   {
-    q: "Can I calculate only part of a playlist (a range of videos)?",
-    a: "Yes. Use Start and End to calculate only a slice of the playlist (for example, videos 20–80). You can set a default range and also override the range per playlist."
+    q: "Can I calculate only part of a playlist?",
+    a: "Absolutely. Use the Start and End fields to measure a specific range of videos — for example, videos 20 through 80. You can set a default range for all playlists or override it individually."
   },
   {
-    q: "How does playback speed change the total time?",
-    a: "Playback speed is applied mathematically (Total time ÷ Speed). For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x."
+    q: "Why might the total differ from what I expect?",
+    a: "Totals can change if a playlist contains unavailable videos (private, deleted, or region-blocked) or if the playlist owner adds or removes videos after your analysis. Minor differences may also come from rounding."
   },
   {
-    q: "Why might my total differ from what I expect?",
-    a: "Totals can change if a playlist contains unavailable videos (private, deleted, region-blocked) or if the playlist is updated after you analyze it. Small differences can also come from rounding in UI displays."
-  },
-  // {
-  //   q: "Does this work for private or unlisted playlists?",
-  //   a: "Public playlists work best. Private playlists usually can’t be analyzed unless your browser/session has access to the video data."
-  // },
-  {
-    q: "Do you store my playlists or results?",
-    a: "Playlist Time is designed for quick calculations. If anything is saved for convenience, it’s stored locally in your browser (so your list can persist on refresh) rather than being published as a public list."
+    q: "Is my data stored anywhere?",
+    a: "No. Playlist Time runs entirely in your browser. Any saved data is stored locally so your list can persist on refresh. Nothing is uploaded to a server or shared publicly."
   }
 ];
+
+const howItWorks = [
+  { title: "Paste playlist links or IDs", detail: "Add one or many YouTube playlist URLs — separated by a new line, comma, or space." },
+  { title: "Set an optional range", detail: "Apply a Start and End range to newly added playlists. Great for large courses where you only need a specific section." },
+  { title: "Click Analyze", detail: "The tool fetches every video, sums the durations, and builds a comparison table in seconds." },
+  { title: "Fine-tune per playlist", detail: "Adjust the Start/End range on individual rows to measure exactly the videos you care about." },
+  { title: "Compare speeds instantly", detail: "See totals at 1x, 1.25x, 1.5x, 1.75x, and any custom playback speed you set." }
+];
+
+const features = [
+  { title: "Multiple playlist support", detail: "Analyze as many playlists as you want in a single session and compare them side by side." },
+  { title: "Flexible speed control", detail: "Preset columns for 1x, 1.25x, 1.5x, and 1.75x — plus a custom speed slider for any pace." },
+  { title: "Per-playlist video ranges", detail: "Set a global default range or override it for each playlist to calculate partial durations." },
+  { title: "No login required", detail: "Completely free. No sign-up, no ads, and no data leaves your browser." },
+  { title: "Instant results", detail: "Results appear in seconds. Works on desktop, tablet, and mobile browsers." }
+];
+
+const whyUse = "Whether you are planning a study schedule, estimating a tutorial series, or figuring out how long a binge-watch will take, knowing the total YouTube playlist time saves real effort. Instead of scrolling through dozens — or hundreds — of videos to guess, this online playlist calculator gives you an accurate answer in seconds. Compare playlist duration at 1.5x speed or any other rate so you can plan around your actual listening habits.";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -118,7 +128,7 @@ const jsonLd = {
     <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   </head>
 
-  <body class="min-h-screen overflow-x-hidden selection:bg-primary/30">
+  <body class="min-h-screen overflow-x-hidden selection:bg-primary/40">
     <header
       class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/95 px-6 py-3 shadow-md backdrop-blur"
     >
@@ -138,10 +148,10 @@ const jsonLd = {
       <section class="rounded-xl border border-border-dark bg-surface-dark">
         <div class="border-b border-border-dark px-5 py-4">
           <div>
-            <h1 class="text-2xl font-bold text-white">Calculate Playlist Time</h1>
+            <h1 class="text-2xl font-bold text-white">YouTube Playlist Duration Calculator</h1>
             <p class="mt-2 max-w-3xl text-sm text-gray-300">
-              Calculate YouTube playlist duration and compare watch time across multiple playlists at different playback speeds.
-              Set a start/end range per playlist to estimate exactly how long specific sections take.
+              Instantly calculate YouTube playlist duration and compare watch time at different playback speeds.
+              Paste one or more playlist links, set optional video ranges, and see exactly how long each playlist takes to finish.
             </p>
           </div>
         </div>
@@ -153,7 +163,7 @@ const jsonLd = {
 
       {/* SEO + helpful content (accordion) */}
       <section id="seo-content" class="rounded-xl border border-border-dark bg-surface-dark/80">
-        <ContentAccordion client:idle {faq} />
+        <ContentAccordion client:idle faq={faq} howItWorks={howItWorks} features={features} whyUse={whyUse} />
       </section>
     </main>
   </body>

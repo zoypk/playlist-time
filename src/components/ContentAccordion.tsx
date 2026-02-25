@@ -2,11 +2,24 @@ import React from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./ui/accordion";
 import { FAQAccordion } from "./FAQAccordion";
 
-interface ContentAccordionProps {
-  faq: Array<{ q: string; a: string }>;
+interface Step {
+  title: string;
+  detail: string;
 }
 
-export function ContentAccordion({ faq }: ContentAccordionProps) {
+interface Feature {
+  title: string;
+  detail: string;
+}
+
+interface ContentAccordionProps {
+  faq: Array<{ q: string; a: string }>;
+  howItWorks: Step[];
+  features: Feature[];
+  whyUse: string;
+}
+
+export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentAccordionProps) {
   return (
     <Accordion type="single" collapsible defaultValue="how-it-works">
       <AccordionItem value="how-it-works" className="border-none">
@@ -14,47 +27,73 @@ export function ContentAccordion({ faq }: ContentAccordionProps) {
           How it works + FAQ
         </AccordionTrigger>
         <AccordionContent className="border-t border-border-dark">
-          <div className="grid gap-8 lg:grid-cols-2 p-5">
+          <div className="space-y-10 p-5">
+
+            {/* ── Introduction ── */}
             <section>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
-                How it works
+                What is Playlist Time?
               </h2>
-
-              <p className="mt-3 text-sm text-gray-300">
-                Use Playlist Time to plan study sessions, courses, or binge-watching by converting playlist length into real watch-time
-                estimates at multiple speeds.
+              <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                Playlist Time is a free <strong>YouTube playlist duration calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed — 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
               </p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                Unlike manually scrolling through every video to add up durations, our <strong>YouTube playlist length calculator</strong> does the math for you in seconds. It also handles partial playlists: set a start and end range to calculate the duration of only the videos you actually plan to watch.
+              </p>
+            </section>
 
+            {/* ── How It Works ── */}
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                How to Calculate YouTube Playlist Duration
+              </h2>
+              <p className="mt-3 text-sm text-gray-300">
+                Use this <strong>online playlist calculator</strong> to convert playlist length into real watch-time estimates in just a few steps:
+              </p>
               <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-gray-300">
-                <li>
-                  <span className="font-medium text-gray-100">Paste playlist links or IDs</span> — add one or many (new line, comma, or space separated).
-                </li>
-                <li>
-                  <span className="font-medium text-gray-100">Optional: set a Default Range</span> — apply Start/End to newly added playlists (great for large courses).
-                </li>
-                <li>
-                  <span className="font-medium text-gray-100">Click Analyze</span> — we sum video durations and build a comparison table.
-                </li>
-                <li>
-                  <span className="font-medium text-gray-100">Fine-tune per playlist</span> — adjust Start/End in each row to measure only the videos you care about.
-                </li>
-                <li>
-                  <span className="font-medium text-gray-100">Compare speeds instantly</span> — see totals at 1x, 1.25x, 1.5x, 1.75x, and your Custom speed.
-                </li>
+                {howItWorks.map((step, i) => (
+                  <li key={i}>
+                    <span className="font-medium text-gray-100">{step.title}</span> — {step.detail}
+                  </li>
+                ))}
               </ol>
-
               <p className="mt-4 text-xs text-gray-400">
                 Note: totals can change if videos become unavailable (private/deleted/region-blocked) or if a playlist is updated after analysis.
               </p>
             </section>
 
+            {/* ── Features / Benefits ── */}
             <section>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
-                Frequently asked questions
+                Features &amp; Benefits
               </h2>
+              <ul className="mt-4 space-y-2 pl-5 text-sm text-gray-300 list-disc">
+                {features.map((feat, i) => (
+                  <li key={i}>
+                    <span className="font-medium text-gray-100">{feat.title}</span> — {feat.detail}
+                  </li>
+                ))}
+              </ul>
+            </section>
 
+            {/* ── Why Use This Tool ── */}
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                Why Use This Playlist Watch Time Calculator?
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                {whyUse}
+              </p>
+            </section>
+
+            {/* ── FAQ ── */}
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                Frequently Asked Questions
+              </h2>
               <FAQAccordion items={faq} />
             </section>
+
           </div>
         </AccordionContent>
       </AccordionItem>
