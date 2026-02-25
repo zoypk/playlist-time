@@ -1,4 +1,12 @@
+# robots.txt for playlisttime.app
+
+# Allow all crawlers
 User-agent: *
 Allow: /
 
+# Disallow API endpoints from being indexed
+User-agent: *
+Disallow: /api/
+
+# Sitemap location
 Sitemap: https://playlisttime.app/sitemap.xml
