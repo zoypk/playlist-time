@@ -5,7 +5,7 @@ import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://playlisttime.app",
+  site: "https://yttime.pages.dev",
   integrations: [react()],
   output: "static",
   vite: {
@@ -27,7 +27,6 @@ export default defineConfig({
       },
     },
     server: {
-      sourcemap: false,
       proxy: {
         "/api": {
           target: "http://127.0.0.1:8788",
