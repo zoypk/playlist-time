@@ -454,7 +454,7 @@ function AppInner() {
               </p>
             </div>
 
-            <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-[300px]">
+            <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-100">
               <div className="mb-3">
                 <Tooltip>
                   <TooltipTrigger asChild>
