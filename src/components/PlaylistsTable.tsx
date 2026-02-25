@@ -19,8 +19,8 @@ import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
 import type { PlaylistRow } from "./types";
+import { BUILT_IN_SPEEDS } from "../config/constants";
 import {
-  BUILT_IN_SPEEDS,
   formatAvgDuration,
   formatDateLabel,
   formatDuration,
@@ -293,7 +293,7 @@ export default function PlaylistsTable({
                   <TooltipContent>{playlistTitle}</TooltipContent>
                 </Tooltip>
                 <p className="truncate text-xs text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
-                <p className="mt-1 text-[11px] text-gray-600">{item.loadingLabel ?? ""}</p>
+                <p className="mt-1 text-[11px] text-gray-400">{item.loadingLabel ?? ""}</p>
                 {metrics && item.status === "success" && (
                   <div className="mt-2">
                     <RangePopover
@@ -332,7 +332,7 @@ export default function PlaylistsTable({
         accessorFn: (row) => row.data?.totalVideoViewsSum ?? 0,
         cell: ({ row }) => {
           if (row.original.status === "loading") return <Skeleton className="h-4 w-14" />;
-          if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
+          if (row.original.status === "error") return <span className="text-xs text-gray-400">-</span>;
           return <span className="font-mono text-sm text-gray-300">{formatViews(row.original.data?.totalVideoViewsSum ?? 0)}</span>;
         }
       },
@@ -355,7 +355,7 @@ export default function PlaylistsTable({
         accessorFn: (row) => metricsById.get(row.id)?.avgLengthSec ?? 0,
         cell: ({ row }) => {
           if (row.original.status === "loading") return <Skeleton className="h-4 w-14" />;
-          if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
+          if (row.original.status === "error") return <span className="text-xs text-gray-400">-</span>;
           const metrics = metricsById.get(row.original.id);
           return <span className="font-mono text-sm text-gray-200">{formatAvgDuration(metrics?.avgLengthSec ?? 0)}</span>;
         }
@@ -396,7 +396,7 @@ export default function PlaylistsTable({
         },
         cell: ({ row }) => {
           if (row.original.status === "loading") return <Skeleton className="h-4 w-16" />;
-          if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
+          if (row.original.status === "error") return <span className="text-xs text-gray-400">-</span>;
 
           const metrics = metricsById.get(row.original.id);
           const selected = metrics?.selectedDurationSec ?? 0;
@@ -437,11 +437,11 @@ export default function PlaylistsTable({
       accessorFn: (row) => (row.data?.publishedAt ? new Date(row.data.publishedAt).getTime() : 0),
       cell: ({ row }) => {
         if (row.original.status === "loading") return <Skeleton className="h-4 w-20" />;
-        if (row.original.status === "error") return <span className="text-xs text-gray-600">-</span>;
+        if (row.original.status === "error") return <span className="text-xs text-gray-400">-</span>;
         return (
           <div className="leading-tight">
             <div className="font-mono text-sm text-gray-300">{formatDateLabel(row.original.data?.publishedAt ?? null)}</div>
-            <div className="text-[11px] text-gray-600">{formatRelativeTime(row.original.data?.publishedAt ?? null)}</div>
+            <div className="text-[11px] text-gray-400">{formatRelativeTime(row.original.data?.publishedAt ?? null)}</div>
           </div>
         );
       }

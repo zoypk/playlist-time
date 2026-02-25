@@ -16,7 +16,7 @@ export function FAQAccordion({ items }: FAQAccordionProps) {
       {items.map((item, index) => (
         <AccordionItem key={`faq-${index}`} value={item.q} className="bg-black/40">
           <AccordionTrigger className="text-sm font-medium text-gray-100 px-3 py-2">
-            {item.q}
+            <h3 className="text-left">{item.q}</h3>
           </AccordionTrigger>
           <AccordionContent className="text-sm text-gray-400 px-3 py-2">
             {item.a}
@@ -26,7 +26,7 @@ export function FAQAccordion({ items }: FAQAccordionProps) {
 
       <AccordionItem key="views-column" value="views-column" className="bg-black/40">
         <AccordionTrigger className="text-sm font-medium text-gray-100 px-3 py-2">
-          What does the Views column represent?
+          <h3 className="text-left">What does the Views column represent?</h3>
         </AccordionTrigger>
         <AccordionContent className="text-sm text-gray-400 px-3 py-2">
           Views are shown as extra context. If available, the number is derived from video-level view counts and summed across the playlist.

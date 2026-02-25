@@ -16,7 +16,7 @@ export function ContentAccordion({ faq }: ContentAccordionProps) {
         <AccordionContent className="border-t border-border-dark">
           <div className="grid gap-8 lg:grid-cols-2 p-5">
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary" aria-label="How it works">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
                 How it works
               </h2>
 
@@ -49,7 +49,7 @@ export function ContentAccordion({ faq }: ContentAccordionProps) {
             </section>
 
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary" aria-label="Frequently asked questions">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
                 Frequently asked questions
               </h2>
 

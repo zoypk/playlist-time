@@ -1,9 +1,7 @@
 import type { PlaylistRow, PlaylistRowErrorType, RangeInfo, RowMetrics } from "./types";
 
+/** Regular expression pattern for validating YouTube playlist IDs. */
 const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{10,100}$/;
-
-/** Playback speeds shown as fixed columns in the grid. */
-export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75] as const;
 
 /** Clamps a numeric value to an inclusive range. */
 export function clamp(value: number, min: number, max: number) {

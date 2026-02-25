@@ -478,7 +478,7 @@ function AppInner() {
                     </TooltipTrigger>
                     <TooltipContent>First video index (1-based)</TooltipContent>
                   </Tooltip>
-                  <span className="text-gray-600">-</span>
+                  <span className="text-gray-400">-</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Input
