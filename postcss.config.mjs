@@ -3,9 +3,7 @@ import tailwindcss from "@tailwindcss/postcss";
 
 export default {
   plugins: [
-    tailwindcss({
-      from: undefined,
-    }),
+    tailwindcss(),
     autoprefixer(),
   ],
 };
