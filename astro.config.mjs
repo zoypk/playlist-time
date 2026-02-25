@@ -11,29 +11,12 @@ export default defineConfig({
   vite: {
     build: {
       sourcemap: false,
-      cssCodeSplit: true,
+      cssCodeSplit: false,
       minify: "esbuild",
-      // Chunk splitting: separate TanStack libraries into their own chunk for faster loads
+      // Single bundle strategy for SPA - all components on one page
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            // Vendor chunks for better caching
-            if (id.includes("node_modules")) {
-              if (id.includes("@tanstack/react-table")) {
-                return "tanstack-table";
-              }
-              if (id.includes("@tanstack/react-query")) {
-                return "tanstack-query";
-              }
-              if (id.includes("@radix-ui")) {
-                return "radix-ui";
-              }
-              if (id.includes("react") || id.includes("react-dom")) {
-                return "react";
-              }
-            }
-          },
-          // Optimize chunk names for better caching
+          // Optimize file names for caching
           chunkFileNames: "assets/[name]-[hash].js",
           entryFileNames: "assets/[name]-[hash].js",
           assetFileNames: "assets/[name]-[hash][extname]",
