@@ -14,11 +14,19 @@ export default {
         "border-contrast": "#000000",
       },
       fontFamily: {
-        display: ["Spline Sans", "sans-serif"],
+        display: [
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
         mono: [
-          "IBM Plex Mono",
           "ui-monospace",
           "SFMono-Regular",
+          "Consolas",
+          "Liberation Mono",
           "Menlo",
           "monospace",
         ],

@@ -1,8 +1,5 @@
 import type { PlaylistRow, PlaylistRowErrorType, RangeInfo, RowMetrics } from "./types";
 
-/** Regular expression pattern for validating YouTube playlist IDs. */
-const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{10,100}$/;
-
 /** Clamps a numeric value to an inclusive range. */
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -87,7 +84,7 @@ export function tryExtractPlaylistId(value: string) {
 }
 
 export function isValidPlaylistId(value: string) {
-  return PLAYLIST_ID_PATTERN.test(value);
+  return /^[A-Za-z0-9_-]{10,100}$/.test(value);
 }
 
 /** Creates a stable row id for client-side playlist entries. */

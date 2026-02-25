@@ -28,12 +28,19 @@ import {
   classifyRowError,
   normalizeRangeForTotal,
 } from "./utils";
-import { STORAGE_KEY, PLAYLIST_CACHE_KEY, CLIENT_CACHE_MAX_AGE_MS, DEFAULT_SORTING } from "../config/constants";
+import {
+  STORAGE_KEY,
+  PLAYLIST_CACHE_KEY,
+  CLIENT_CACHE_MAX_AGE_MS,
+  QUERY_STALE_TIME_MS,
+  QUERY_CACHE_TIME_MS,
+  DEFAULT_SORTING
+} from "../config/constants";
 import { getFriendlyError } from "../lib/ErrorHandler";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 60 }
+    queries: { staleTime: QUERY_STALE_TIME_MS, gcTime: QUERY_CACHE_TIME_MS }
   }
 });
 
@@ -180,8 +187,8 @@ function AppInner() {
         const batch = await queryClient.fetchQuery({
           queryKey: ["playlists-batch", forceRefresh ? "refresh" : "normal", ...sortedIds],
           queryFn: () => fetchPlaylistsBatch(sortedIds, { refresh: forceRefresh }),
-          staleTime: forceRefresh ? 0 : 1000 * 60 * 5,
-          gcTime: 1000 * 60 * 60
+          staleTime: forceRefresh ? 0 : QUERY_STALE_TIME_MS,
+          gcTime: QUERY_CACHE_TIME_MS
         });
 
         const now = Date.now();
@@ -409,8 +416,8 @@ function AppInner() {
 
     if (invalidCount > 0) {
       toast.error(
-        invalidCount === 1 
-          ? "Invalid playlist URL or ID" 
+        invalidCount === 1
+          ? "Invalid playlist URL or ID"
           : `${invalidCount} invalid playlist URLs or IDs`,
         {
           description: "Please check your input and try again."

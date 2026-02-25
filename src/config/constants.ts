@@ -44,7 +44,7 @@ export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75] as const;
 export const SPEED_COLUMNS = BUILT_IN_SPEEDS.map((speed) => ({
   id: `speed_${String(speed).replace(".", "_")}`,
   label: `${speed.toFixed(2)}x`,
-  speed
+  speed,
 }));
 
 /** Default sorting configuration when no sort preference persisted */

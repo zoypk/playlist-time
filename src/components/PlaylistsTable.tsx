@@ -11,6 +11,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Trash2 } from "lucide-re
 
 import RangePopover from "./RangePopover";
 import SpeedControl from "./SpeedControl";
+import "../styles/table.css";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardHeader } from "./ui/card";
@@ -243,12 +244,12 @@ export default function PlaylistsTable({
                         className="h-full w-full object-cover opacity-85 transition group-hover:opacity-100"
                         width={64}
                         height={40}
-                        loading={row.index < 4 ? "eager" : "lazy"}
+                        loading="lazy"
                         decoding="async"
-                        fetchPriority={row.index === 0 ? "high" : "auto"}
+                        fetchPriority="low"
                       />
                     ) : (
-                        <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
+                      <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
                     )}
                   </div>
                 </PopoverTrigger>
@@ -260,8 +261,9 @@ export default function PlaylistsTable({
                       className="rounded object-cover"
                       width={320}
                       height={200}
-                      loading="eager"
+                      loading="lazy"
                       decoding="async"
+                      fetchPriority="low"
                     />
                   </PopoverContent>
                 )}
@@ -662,7 +664,7 @@ export default function PlaylistsTable({
                       </span>
                     </div>
                   )}
-                  
+
                   {/* 1x first */}
                   {speedColumns.filter((sc) => sc.primary).map((speedColumn) => {
                     const selected = metrics.selectedDurationSec;

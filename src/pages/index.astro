@@ -115,26 +115,6 @@ const jsonLd = {
     <meta name="twitter:image" content={socialImage} />
     <meta name="twitter:image:alt" content={socialImageAlt} />
 
-    <!-- DNS prefetch for faster font loading -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <!-- Preload fonts asynchronously to prevent render blocking -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
-
     <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   </head>
 
@@ -173,7 +153,7 @@ const jsonLd = {
 
       {/* SEO + helpful content (accordion) */}
       <section id="seo-content" class="rounded-xl border border-border-dark bg-surface-dark/80">
-        <ContentAccordion client:visible {faq} />
+        <ContentAccordion client:idle {faq} />
       </section>
     </main>
   </body>
