@@ -13,6 +13,7 @@ import RangePopover from "./RangePopover";
 import SpeedControl from "./SpeedControl";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Card, CardHeader } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -451,6 +452,250 @@ export default function PlaylistsTable({
 
   if (!rows.length) {
     return null;
+  }
+
+  // Single playlist: show card instead of table
+  if (rows.length === 1) {
+    const item = rows[0];
+    const metrics = metricsById.get(item.id);
+    const playlistTitle = item.data?.title?.trim() || item.playlistId || "Playlist";
+    const playlistUrl = item.playlistId
+      ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}`
+      : null;
+
+    return (
+      <TooltipProvider>
+        <Card className="overflow-hidden max-w-md">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 py-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {item.data?.thumbnailUrl && (
+                <div className="h-12 w-20 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60">
+                  <img
+                    src={item.data.thumbnailUrl}
+                    alt={`${playlistTitle} thumbnail`}
+                    className="h-full w-full object-cover opacity-90"
+                    width={80}
+                    height={48}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {item.status === "loading" && (
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-48" />
+                    <Skeleton className="h-2 w-32" />
+                  </div>
+                )}
+                {item.status === "error" && (
+                  <div className="space-y-1">
+                    <ErrorBadge type={item.errorType} />
+                    <p className="text-xs text-gray-300">{item.input}</p>
+                    <p className="text-xs text-red-300/80">{item.errorMessage ?? "Unable to load playlist."}</p>
+                  </div>
+                )}
+                {item.status === "success" && (
+                  <>
+                    <h2 className="text-sm font-semibold text-gray-100">
+                      {playlistUrl ? (
+                        <a
+                          href={playlistUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-primary"
+                          aria-label={`Open playlist: ${playlistTitle}`}
+                        >
+                          {playlistTitle}
+                        </a>
+                      ) : (
+                        <span>{playlistTitle}</span>
+                      )}
+                    </h2>
+                    <p className="text-[11px] text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+              onClick={() => onRemoveRow(item.id)}
+              aria-label="Remove playlist"
+              title="Remove playlist"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </CardHeader>
+
+          {item.status === "success" && metrics && (
+            <div className="space-y-2 p-3">
+              {/* Quick Stats */}
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <div>
+                  <span className="text-gray-500">Views:</span>
+                  <span className="ml-1 font-mono font-semibold text-gray-200">{formatViews(item.data?.totalVideoViewsSum ?? 0)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Avg:</span>
+                  <span className="ml-1 font-mono font-semibold text-gray-200">{formatAvgDuration(metrics.avgLengthSec)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Published:</span>
+                  <span className="ml-1 text-gray-400">{formatRelativeTime(item.data?.publishedAt ?? null)}</span>
+                </div>
+                <div className="ml-auto">
+                  <RangePopover
+                    disabled={false}
+                    range={metrics.range}
+                    isOpen={openRangeId === item.id}
+                    onOpenChange={(open) => setOpenRangeId(open ? item.id : null)}
+                    onApply={(start, end) => {
+                      onRangeApply(item.id, start, end);
+                      setOpenRangeId(null);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Speed Times - Vertical Comparison slow to fast */}
+              <div className="space-y-2 border-t border-border-dark pt-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Watch times</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-gray-500">Custom:</span>
+                    <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  {/* Custom if slower than 1x */}
+                  {customSpeed < 1 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                          <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
+                          <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
+                          <span className="min-w-12 text-right text-[10px] font-semibold text-amber-300">
+                            {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{speedCellTooltip(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}</TooltipContent>
+                    </Tooltip>
+                  )}
+                  
+                  {/* 1x first */}
+                  {speedColumns.filter((sc) => sc.primary).map((speedColumn) => {
+                    const selected = metrics.selectedDurationSec;
+                    const atSpeed = selected / speedColumn.speed;
+
+                    return (
+                      <Tooltip key={speedColumn.id}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 rounded border border-primary/40 bg-primary/10 px-2 py-1.5 transition">
+                            <span className="min-w-8 text-xs font-bold text-primary">{speedColumn.label}</span>
+                            <span className="flex-1 text-right text-lg font-bold text-primary">
+                              {formatDuration(atSpeed)}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{speedCellTooltip(selected, atSpeed)}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+
+                  {/* Then 1.25x - 1.5x */}
+                  {speedColumns.filter((sc) => sc.speed > 1 && sc.speed <= 1.5 && sc.id !== "speed_custom").map((speedColumn) => {
+                    const selected = metrics.selectedDurationSec;
+                    const atSpeed = selected / speedColumn.speed;
+                    const atOneX = selected;
+                    const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
+                    const isSaving = atOneX - atSpeed > 0;
+
+                    return (
+                      <Tooltip key={speedColumn.id}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                            <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
+                            <span className="flex-1 text-right text-lg font-bold text-gray-100">
+                              {formatDuration(atSpeed)}
+                            </span>
+                            <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
+                              {deltaLabel}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+
+                  {/* Then faster speeds 1.75x+ */}
+                  {speedColumns.filter((sc) => sc.speed > 1.5 && !sc.primary && sc.id !== "speed_custom").map((speedColumn) => {
+                    const selected = metrics.selectedDurationSec;
+                    const atSpeed = selected / speedColumn.speed;
+                    const atOneX = selected;
+                    const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
+                    const isSaving = atOneX - atSpeed > 0;
+
+                    return (
+                      <Tooltip key={speedColumn.id}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                            <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
+                            <span className="flex-1 text-right text-lg font-bold text-gray-100">
+                              {formatDuration(atSpeed)}
+                            </span>
+                            <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
+                              {deltaLabel}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{speedCellTooltip(atOneX, atSpeed)}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+
+                  {/* Custom if faster than 1x */}
+                  {customSpeed >= 1 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
+                          <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
+                          <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
+                          <span className="min-w-12 text-right text-[10px] font-semibold text-emerald-400">
+                            {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{speedCellTooltip(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {item.status === "loading" && (
+            <div className="space-y-1 p-3">
+              <div className="flex gap-1.5">
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <div className="sr-only" aria-live="polite">
+          {statusMessage}
+        </div>
+      </TooltipProvider>
+    );
   }
 
   return (

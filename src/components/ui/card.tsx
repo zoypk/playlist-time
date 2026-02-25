@@ -7,7 +7,7 @@ function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
 }
 
 function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b border-border-dark bg-surface-darker p-4", className)} {...props} />;
+  return <div className={cn("border-b border-border-dark bg-surface-darker p-3", className)} {...props} />;
 }
 
 export { Card, CardHeader };
