@@ -11,18 +11,32 @@ export default defineConfig({
   vite: {
     build: {
       sourcemap: false,
+      cssCodeSplit: true,
+      minify: "esbuild",
       // Chunk splitting: separate TanStack libraries into their own chunk for faster loads
       rollupOptions: {
         output: {
-          manualChunks: {
-            "tanstack-table": ["@tanstack/react-table"],
-            "tanstack-query": ["@tanstack/react-query"],
-            "radix-ui": [
-              "@radix-ui/react-accordion",
-              "@radix-ui/react-popover",
-              "@radix-ui/react-tooltip",
-            ],
+          manualChunks: (id) => {
+            // Vendor chunks for better caching
+            if (id.includes("node_modules")) {
+              if (id.includes("@tanstack/react-table")) {
+                return "tanstack-table";
+              }
+              if (id.includes("@tanstack/react-query")) {
+                return "tanstack-query";
+              }
+              if (id.includes("@radix-ui")) {
+                return "radix-ui";
+              }
+              if (id.includes("react") || id.includes("react-dom")) {
+                return "react";
+              }
+            }
           },
+          // Optimize chunk names for better caching
+          chunkFileNames: "assets/[name]-[hash].js",
+          entryFileNames: "assets/[name]-[hash].js",
+          assetFileNames: "assets/[name]-[hash][extname]",
         },
       },
     },
