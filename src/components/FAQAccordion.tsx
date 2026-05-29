@@ -1,4 +1,3 @@
-import React from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./ui/accordion";
 
 interface FAQItem {

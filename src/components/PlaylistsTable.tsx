@@ -7,19 +7,18 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, GripVertical, Trash2 } from "lucide-react";
 
 import RangePopover from "./RangePopover";
 import SpeedControl from "./SpeedControl";
 import "../styles/table.css";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Card, CardHeader } from "./ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./ui/table";
-import type { PlaylistRow } from "./types";
+import type { PlaylistRow, RowMetrics } from "./types";
 import { BUILT_IN_SPEEDS } from "../config/constants";
 import {
   formatAvgDuration,
@@ -112,6 +111,288 @@ function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   return <Badge variant="destructive">{map[type ?? "unknown"]}</Badge>;
 }
 
+function buildPlaylistUrl(playlistId: string | null) {
+  return playlistId
+    ? `https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`
+    : null;
+}
+
+function MobileSpeedTile({
+  label,
+  value,
+  delta,
+  isSaving,
+  primary = false
+}: {
+  label: string;
+  value: string;
+  delta?: string;
+  isSaving?: boolean;
+  primary?: boolean;
+}) {
+  return (
+    <div
+      className={`min-w-0 rounded-md border p-3 ${
+        primary
+          ? "border-primary/45 bg-primary/12"
+          : "border-border-dark bg-surface-darker/86"
+      }`}
+    >
+      <div className={`text-xs font-bold ${primary ? "text-primary" : "text-gray-400"}`}>{label}</div>
+      <div className={`mt-1 font-mono text-lg font-extrabold leading-tight ${primary ? "text-primary" : "text-gray-100"}`}>
+        {value}
+      </div>
+      {delta && (
+        <div className={`mt-1 font-mono text-xs font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
+          {delta}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobilePlaylistCard({
+  row,
+  metrics,
+  speedColumns,
+  customSpeed,
+  isRangeOpen,
+  onRangeOpenChange,
+  onRangeApply,
+  onRemoveRow,
+  onCustomSpeedCommit
+}: {
+  row: PlaylistRow;
+  metrics: RowMetrics | undefined;
+  speedColumns: SpeedColumn[];
+  customSpeed: number;
+  isRangeOpen: boolean;
+  onRangeOpenChange: (open: boolean) => void;
+  onRangeApply: (start: number | null, end: number | null) => void;
+  onRemoveRow: () => void;
+  onCustomSpeedCommit: (value: number) => void;
+}) {
+  const playlistTitle = row.data?.title?.trim() || row.playlistId || "Playlist";
+  const playlistUrl = buildPlaylistUrl(row.playlistId);
+
+  if (row.status === "loading") {
+    return (
+      <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-soft">
+        <div className="flex items-center gap-3 p-4">
+          <Skeleton className="h-14 w-24 shrink-0 border border-border-dark" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-full max-w-56" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+            onClick={onRemoveRow}
+            aria-label="Remove playlist"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 border-t border-border-dark p-4">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </article>
+    );
+  }
+
+  if (row.status === "error") {
+    return (
+      <article className="overflow-hidden rounded-lg border border-red-900/60 bg-surface-dark shadow-soft">
+        <div className="flex items-start gap-3 p-4">
+          <div className="min-w-0 flex-1 space-y-2">
+            <ErrorBadge type={row.errorType} />
+            <p className="break-words text-sm font-semibold text-gray-200">{row.input}</p>
+            <p className="text-sm leading-5 text-red-300/85">{row.errorMessage ?? "Unable to load playlist."}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+            onClick={onRemoveRow}
+            aria-label="Remove playlist"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+      </article>
+    );
+  }
+
+  if (!metrics) {
+    return null;
+  }
+
+  const selected = metrics.selectedDurationSec;
+  const primarySpeed = speedColumns.find((speedColumn) => speedColumn.primary) ?? speedColumns[0];
+  const secondarySpeeds = speedColumns.filter((speedColumn) => speedColumn.id !== primarySpeed.id);
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-soft">
+      <div className="flex items-start gap-3 p-4">
+        <div className="h-14 w-24 shrink-0 overflow-hidden rounded-md border border-border-dark bg-surface-raised">
+          {row.data?.thumbnailUrl ? (
+            <img
+              src={row.data.thumbnailUrl}
+              alt={`${playlistTitle} thumbnail`}
+              className="h-full w-full object-cover opacity-90"
+              width={96}
+              height={56}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+            />
+          ) : (
+            <div className="h-full w-full bg-linear-to-br from-surface-darker via-surface-dark to-surface-raised" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          {playlistUrl ? (
+            <a
+              href={playlistUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="group/link inline-flex min-h-11 max-w-full items-center gap-1.5 py-1 text-base font-bold leading-snug text-gray-100 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              aria-label={`Open playlist: ${playlistTitle}`}
+            >
+              <span className="min-w-0 break-words">{playlistTitle}</span>
+              <ExternalLink className="size-3.5 shrink-0 text-gray-500 group-hover/link:text-primary" aria-hidden="true" />
+              <span className="shrink-0 text-xs font-semibold text-gray-500 group-hover/link:text-primary">Open</span>
+            </a>
+          ) : (
+            <h3 className="text-base font-bold leading-snug text-gray-100">{playlistTitle}</h3>
+          )}
+          <p className="mt-1 truncate text-sm text-gray-500">{row.data?.channelTitle || "Unknown channel"}</p>
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+          onClick={onRemoveRow}
+          aria-label="Remove playlist"
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 border-y border-border-dark bg-surface-darker/70">
+        <div className="border-r border-border-dark p-3">
+          <div className="text-[11px] font-semibold text-gray-500">Videos</div>
+          <div className="mt-1 font-mono text-sm font-bold text-gray-100">
+            {metrics.range.selectedCount}/{metrics.range.totalVideos}
+          </div>
+        </div>
+        <div className="border-r border-border-dark p-3">
+          <div className="text-[11px] font-semibold text-gray-500">Views</div>
+          <div className="mt-1 font-mono text-sm font-bold text-gray-100">{formatViews(row.data?.totalVideoViewsSum ?? 0)}</div>
+        </div>
+        <div className="p-3">
+          <div className="text-[11px] font-semibold text-gray-500">Avg</div>
+          <div className="mt-1 font-mono text-sm font-bold text-gray-100">{formatAvgDuration(metrics.avgLengthSec)}</div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-b border-border-dark px-4 py-3">
+        <RangePopover
+          disabled={false}
+          range={metrics.range}
+          isOpen={isRangeOpen}
+          triggerClassName="min-h-11 px-4 py-2 text-sm"
+          onOpenChange={onRangeOpenChange}
+          onApply={onRangeApply}
+        />
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-xs font-semibold text-gray-500">Custom</span>
+          <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} />
+        </div>
+      </div>
+
+      <div className="p-4">
+        <MobileSpeedTile
+          label={primarySpeed.label}
+          value={formatDuration(selected / primarySpeed.speed)}
+          primary
+        />
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {secondarySpeeds.map((speedColumn) => {
+            const atSpeed = selected / speedColumn.speed;
+            const isSaving = selected - atSpeed > 0;
+
+            return (
+              <MobileSpeedTile
+                key={speedColumn.id}
+                label={speedColumn.id === "speed_custom" ? `${speedColumn.speed.toFixed(2)}x` : speedColumn.label}
+                value={formatDuration(atSpeed)}
+                delta={formatSignedDurationDelta(selected, atSpeed)}
+                isSaving={isSaving}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MobileTotalsCard({
+  totals,
+  speedColumns
+}: {
+  totals: { totalSelectedDuration: number; avgLength: number };
+  speedColumns: SpeedColumn[];
+}) {
+  const primarySpeed = speedColumns.find((speedColumn) => speedColumn.primary) ?? speedColumns[0];
+  const secondarySpeeds = speedColumns.filter((speedColumn) => speedColumn.id !== primarySpeed.id);
+  const selected = totals.totalSelectedDuration;
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-primary/35 bg-surface-dark shadow-soft">
+      <div className="flex items-center justify-between gap-3 border-b border-border-dark px-4 py-3">
+        <div>
+          <h3 className="text-base font-extrabold uppercase text-gray-100">Total</h3>
+          <p className="mt-1 text-sm text-gray-500">Average video {formatAvgDuration(totals.avgLength)}</p>
+        </div>
+      </div>
+      <div className="p-4">
+        <MobileSpeedTile
+          label={primarySpeed.label}
+          value={formatDuration(selected / primarySpeed.speed)}
+          primary
+        />
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {secondarySpeeds.map((speedColumn) => {
+            const atSpeed = selected / speedColumn.speed;
+            const isSaving = selected - atSpeed > 0;
+
+            return (
+              <MobileSpeedTile
+                key={speedColumn.id}
+                label={speedColumn.id === "speed_custom" ? `${speedColumn.speed.toFixed(2)}x` : speedColumn.label}
+                value={formatDuration(atSpeed)}
+                delta={formatSignedDurationDelta(selected, atSpeed)}
+                isSaving={isSaving}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 /** Table renderer for playlist metrics. */
 export default function PlaylistsTable({
   rows,
@@ -127,6 +408,7 @@ export default function PlaylistsTable({
   const [openRangeId, setOpenRangeId] = React.useState<string | null>(null);
   const [draggedId, setDraggedId] = React.useState<string | null>(null);
   const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
+  const [isMobileLayout, setIsMobileLayout] = React.useState(false);
 
   const metricsById = React.useMemo(() => {
     const map = new Map<string, ReturnType<typeof getRowMetrics>>();
@@ -281,11 +563,13 @@ export default function PlaylistsTable({
                           href={playlistUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="cursor-pointer hover:text-primary"
+                          className="group/link inline-flex max-w-full cursor-pointer items-center gap-1.5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                           aria-label={`Open playlist: ${playlistTitle}`}
                           onClick={(event) => event.stopPropagation()}
                         >
-                          {playlistTitle}
+                          <span className="truncate">{playlistTitle}</span>
+                          <ExternalLink className="size-3 shrink-0 text-gray-500 group-hover/link:text-primary" aria-hidden="true" />
+                          <span className="shrink-0 text-[11px] font-semibold text-gray-500 group-hover/link:text-primary">Open</span>
                         </a>
                       ) : (
                         <span>{playlistTitle}</span>
@@ -496,6 +780,15 @@ export default function PlaylistsTable({
     onVisibleOrderChange(visibleIds);
   }, [onVisibleOrderChange, visibleIds]);
 
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncLayout = () => setIsMobileLayout(mediaQuery.matches);
+
+    syncLayout();
+    mediaQuery.addEventListener("change", syncLayout);
+    return () => mediaQuery.removeEventListener("change", syncLayout);
+  }, []);
+
   const totals = React.useMemo(() => {
     let totalSelectedDuration = 0;
     let totalSelectedVideos = 0;
@@ -537,346 +830,153 @@ export default function PlaylistsTable({
     return null;
   }
 
-  // Single playlist: show card instead of table
-  if (rows.length === 1) {
-    const item = rows[0];
-    const metrics = metricsById.get(item.id);
-    const playlistTitle = item.data?.title?.trim() || item.playlistId || "Playlist";
-    const playlistUrl = item.playlistId
-      ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}`
-      : null;
-
-    return (
-      <TooltipProvider>
-        <Card className="overflow-hidden max-w-md">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 py-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              {item.data?.thumbnailUrl && (
-                <div className="h-12 w-20 shrink-0 overflow-hidden rounded border border-border-dark bg-surface-raised">
-                  <img
-                    src={item.data.thumbnailUrl}
-                    alt={`${playlistTitle} thumbnail`}
-                    className="h-full w-full object-cover opacity-90"
-                    width={80}
-                    height={48}
-                    loading="eager"
-                    decoding="async"
-                    fetchPriority="high"
-                  />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                {item.status === "loading" && (
-                  <div className="space-y-1">
-                    <Skeleton className="h-3 w-48" />
-                    <Skeleton className="h-2 w-32" />
-                  </div>
-                )}
-                {item.status === "error" && (
-                  <div className="space-y-1">
-                    <ErrorBadge type={item.errorType} />
-                    <p className="text-xs text-gray-300">{item.input}</p>
-                    <p className="text-xs text-red-300/80">{item.errorMessage ?? "Unable to load playlist."}</p>
-                  </div>
-                )}
-                {item.status === "success" && (
-                  <>
-                    <h2 className="text-sm font-semibold text-gray-100">
-                      {playlistUrl ? (
-                        <a
-                          href={playlistUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="hover:text-primary"
-                          aria-label={`Open playlist: ${playlistTitle}`}
-                        >
-                          {playlistTitle}
-                        </a>
-                      ) : (
-                        <span>{playlistTitle}</span>
-                      )}
-                    </h2>
-                    <p className="text-[11px] text-gray-500">{item.data?.channelTitle || "Unknown channel"}</p>
-                  </>
-                )}
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
-              onClick={() => onRemoveRow(item.id)}
-              aria-label="Remove playlist"
-              title="Remove playlist"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </CardHeader>
-
-          {item.status === "success" && metrics && (
-            <div className="space-y-2 p-3">
-              {/* Quick Stats */}
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                <div>
-                  <span className="text-gray-500">Views:</span>
-                  <span className="ml-1 font-mono font-semibold text-gray-200">{formatViews(item.data?.totalVideoViewsSum ?? 0)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Avg:</span>
-                  <span className="ml-1 font-mono font-semibold text-gray-200">{formatAvgDuration(metrics.avgLengthSec)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Published:</span>
-                  <span className="ml-1 text-gray-400">{formatRelativeTime(item.data?.publishedAt ?? null)}</span>
-                </div>
-                <div className="ml-auto">
-                  <RangePopover
-                    disabled={false}
-                    range={metrics.range}
-                    isOpen={openRangeId === item.id}
-                    onOpenChange={(open) => setOpenRangeId(open ? item.id : null)}
-                    onApply={(start, end) => {
-                      onRangeApply(item.id, start, end);
-                      setOpenRangeId(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Speed Times - Vertical Comparison slow to fast */}
-              <div className="space-y-2 border-t border-border-dark pt-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase text-warm-muted">Watch times</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-500">Custom:</span>
-                    <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  {/* Custom if slower than 1x */}
-                  {customSpeed < 1 && (
-                    <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                      <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
-                      <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
-                      <span className="min-w-12 text-right text-[10px] font-semibold text-amber-300">
-                        {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* 1x first */}
-                  {speedColumns.filter((sc) => sc.primary).map((speedColumn) => {
-                    const selected = metrics.selectedDurationSec;
-                    const atSpeed = selected / speedColumn.speed;
-
-                    return (
-                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-primary/40 bg-primary/10 px-2 py-1.5 transition">
-                        <span className="min-w-8 text-xs font-bold text-primary">{speedColumn.label}</span>
-                        <span className="flex-1 text-right text-lg font-bold text-primary">
-                          {formatDuration(atSpeed)}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  {/* Then 1.25x - 1.5x */}
-                  {speedColumns.filter((sc) => sc.speed > 1 && sc.speed <= 1.5 && sc.id !== "speed_custom").map((speedColumn) => {
-                    const selected = metrics.selectedDurationSec;
-                    const atSpeed = selected / speedColumn.speed;
-                    const atOneX = selected;
-                    const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
-                    const isSaving = atOneX - atSpeed > 0;
-
-                    return (
-                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                        <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
-                        <span className="flex-1 text-right text-lg font-bold text-gray-100">
-                          {formatDuration(atSpeed)}
-                        </span>
-                        <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
-                          {deltaLabel}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  {/* Then faster speeds 1.75x+ */}
-                  {speedColumns.filter((sc) => sc.speed > 1.5 && !sc.primary && sc.id !== "speed_custom").map((speedColumn) => {
-                    const selected = metrics.selectedDurationSec;
-                    const atSpeed = selected / speedColumn.speed;
-                    const atOneX = selected;
-                    const deltaLabel = formatSignedDurationDelta(atOneX, atSpeed);
-                    const isSaving = atOneX - atSpeed > 0;
-
-                    return (
-                      <div key={speedColumn.id} className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                        <span className="min-w-8 text-xs font-bold text-gray-400">{speedColumn.label}</span>
-                        <span className="flex-1 text-right text-lg font-bold text-gray-100">
-                          {formatDuration(atSpeed)}
-                        </span>
-                        <span className={`min-w-12 text-right text-[10px] font-semibold ${isSaving ? "text-emerald-400" : "text-amber-300"}`}>
-                          {deltaLabel}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  {/* Custom if faster than 1x */}
-                  {customSpeed >= 1 && (
-                    <div className="flex items-center gap-2 rounded border border-border-dark bg-surface-darker px-2 py-1.5 transition hover:border-primary/20">
-                      <span className="min-w-12 text-xs font-bold text-gray-400">{customSpeed.toFixed(2)}x</span>
-                      <span className="flex-1 text-right text-lg font-bold text-gray-100">{formatDuration(metrics.selectedDurationSec / customSpeed)}</span>
-                      <span className="min-w-12 text-right text-[10px] font-semibold text-emerald-400">
-                        {formatSignedDurationDelta(metrics.selectedDurationSec, metrics.selectedDurationSec / customSpeed)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {item.status === "loading" && (
-            <div className="space-y-1 p-3">
-              <div className="flex gap-1.5">
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-5 w-16" />
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <div className="sr-only" aria-live="polite">
-          {statusMessage}
-        </div>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <TooltipProvider>
-      <Table role="table" aria-label="Playlist comparison table" aria-colcount={table.getAllColumns().length}>
-        <TableHeader>
-          <TableRow role="row">
-            {table.getHeaderGroups().map((headerGroup) =>
-              headerGroup.headers.map((header) => {
-                const canSort = header.column.getCanSort();
-                const sorted = header.column.getIsSorted();
-                const ariaSort = canSort
-                  ? sorted === "asc"
-                    ? "ascending"
-                    : sorted === "desc"
-                      ? "descending"
-                      : "none"
-                  : undefined;
+      {isMobileLayout ? (
+        <div className="space-y-3">
+          {table.getRowModel().rows.map((row) => (
+            <MobilePlaylistCard
+              key={row.original.id}
+              row={row.original}
+              metrics={metricsById.get(row.original.id)}
+              speedColumns={speedColumns}
+              customSpeed={customSpeed}
+              isRangeOpen={openRangeId === row.original.id}
+              onRangeOpenChange={(open) => setOpenRangeId(open ? row.original.id : null)}
+              onRangeApply={(start, end) => {
+                onRangeApply(row.original.id, start, end);
+                setOpenRangeId(null);
+              }}
+              onRemoveRow={() => onRemoveRow(row.original.id)}
+              onCustomSpeedCommit={onCustomSpeedCommit}
+            />
+          ))}
 
-                return (
-                  <TableHead
-                    key={header.id}
-                    role="columnheader"
-                    aria-sort={ariaSort}
-                  >
-                    {canSort ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            header.column.getToggleSortingHandler()?.(event);
-                          }
-                        }}
-                        className="w-full cursor-pointer text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
-                        aria-label={getColumnAriaLabel(header.column.id)}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                      </button>
-                    ) : (
-                      flexRender(header.column.columnDef.header, header.getContext())
-                    )}
-                  </TableHead>
-                );
-              })
-            )}
-          </TableRow>
-        </TableHeader>
+          {rows.length > 1 && <MobileTotalsCard totals={totals} speedColumns={speedColumns} />}
+        </div>
+      ) : (
+        <Table role="table" aria-label="Playlist comparison table" aria-colcount={table.getAllColumns().length}>
+          <TableHeader>
+            <TableRow role="row">
+              {table.getHeaderGroups().map((headerGroup) =>
+                headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
+                  const ariaSort = canSort
+                    ? sorted === "asc"
+                      ? "ascending"
+                      : sorted === "desc"
+                        ? "descending"
+                        : "none"
+                    : undefined;
 
-        <TableBody role="rowgroup">
-          {table.getRowModel().rows.map((row, rowIndex) => {
-            const draggable = true;
-            const isSelected = selectedRowId === row.original.id;
-            return (
-              <TableRow
-                key={row.id}
-                draggable={draggable}
-                onClick={() => setSelectedRowId(row.original.id)}
-                onKeyDown={(event) => handleRowKeyDown(event, row.original.id)}
-                className={`cursor-pointer transition-colors ${isSelected
-                  ? "bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
-                  : "focus:outline-none focus:ring-2 focus:ring-primary/30 ring-inset"
-                  }`}
-                title="Click to select row, use arrow keys to move up/down"
-                onDragStart={() => {
-                  if (!draggable) return;
-                  setDraggedId(row.original.id);
-                  setSelectedRowId(row.original.id);
-                }}
-                onDragOver={(event) => {
-                  if (!draggable || !draggedId || draggedId === row.original.id) return;
-                  event.preventDefault();
-                }}
-                onDrop={(event) => {
-                  if (!draggable || !draggedId) return;
-                  event.preventDefault();
-                  if (draggedId !== row.original.id) {
-                    onReorderRows(draggedId, row.original.id);
-                  }
-                  setDraggedId(null);
-                }}
-                onDragEnd={() => setDraggedId(null)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    role="cell"
-                    className={`${cell.column.id === "playlist" ? "drag-handle" : ""
-                      }`}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            );
-          })}
-        </TableBody>
+                  return (
+                    <TableHead
+                      key={header.id}
+                      role="columnheader"
+                      aria-sort={ariaSort}
+                    >
+                      {canSort ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              header.column.getToggleSortingHandler()?.(event);
+                            }
+                          }}
+                          className="w-full cursor-pointer rounded px-1 text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          aria-label={getColumnAriaLabel(header.column.id)}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </TableHead>
+                  );
+                })
+              )}
+            </TableRow>
+          </TableHeader>
 
-        <TableFooter>
-          <TableRow role="row">
-            <TableCell role="cell" />
-            <TableCell role="cell" className="text-sm font-medium uppercase text-gray-300">
-              Total
-            </TableCell>
-            <TableCell role="cell" />
-            <TableCell role="cell" className="font-mono text-sm text-gray-300">
-              {formatAvgDuration(totals.avgLength)}
-            </TableCell>
-            {speedColumns.map((speedColumn) => {
-              const value = totals.totalSelectedDuration / speedColumn.speed;
-              const sharedClass = "font-mono text-sm font-medium text-gray-300";
-
+          <TableBody role="rowgroup">
+            {table.getRowModel().rows.map((row) => {
+              const draggable = true;
+              const isSelected = selectedRowId === row.original.id;
               return (
-                <TableCell key={speedColumn.id} role="cell" className={sharedClass}>
-                  {formatDuration(value)}
-                </TableCell>
+                <TableRow
+                  key={row.id}
+                  draggable={draggable}
+                  onClick={() => setSelectedRowId(row.original.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, row.original.id)}
+                  className={`cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
+                      : "focus:outline-none focus:ring-2 focus:ring-primary/30 ring-inset"
+                  }`}
+                  title="Click to select row, use arrow keys to move up/down"
+                  onDragStart={() => {
+                    if (!draggable) return;
+                    setDraggedId(row.original.id);
+                    setSelectedRowId(row.original.id);
+                  }}
+                  onDragOver={(event) => {
+                    if (!draggable || !draggedId || draggedId === row.original.id) return;
+                    event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    if (!draggable || !draggedId) return;
+                    event.preventDefault();
+                    if (draggedId !== row.original.id) {
+                      onReorderRows(draggedId, row.original.id);
+                    }
+                    setDraggedId(null);
+                  }}
+                  onDragEnd={() => setDraggedId(null)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      role="cell"
+                      className={`${cell.column.id === "playlist" ? "drag-handle" : ""}`}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               );
             })}
-            <TableCell role="cell" />
-          </TableRow>
-        </TableFooter>
-      </Table>
+          </TableBody>
+
+          {rows.length > 1 && (
+            <TableFooter>
+              <TableRow role="row">
+                <TableCell role="cell" />
+                <TableCell role="cell" className="text-sm font-medium uppercase text-gray-300">
+                  Total
+                </TableCell>
+                <TableCell role="cell" />
+                <TableCell role="cell" className="font-mono text-sm text-gray-300">
+                  {formatAvgDuration(totals.avgLength)}
+                </TableCell>
+                {speedColumns.map((speedColumn) => {
+                  const value = totals.totalSelectedDuration / speedColumn.speed;
+                  const sharedClass = "font-mono text-sm font-medium text-gray-300";
+
+                  return (
+                    <TableCell key={speedColumn.id} role="cell" className={sharedClass}>
+                      {formatDuration(value)}
+                    </TableCell>
+                  );
+                })}
+                <TableCell role="cell" />
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      )}
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}

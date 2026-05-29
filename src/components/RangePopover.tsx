@@ -6,12 +6,14 @@ import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import type { RangeInfo } from "./types";
+import { cn } from "../lib/utils";
 import { clamp, getRangePillLabel } from "./utils";
 
 type RangePopoverProps = {
   range: RangeInfo;
   isOpen: boolean;
   disabled: boolean;
+  triggerClassName?: string;
   onOpenChange: (open: boolean) => void;
   onApply: (start: number | null, end: number | null) => void;
 };
@@ -19,7 +21,7 @@ type RangePopoverProps = {
 /**
  * Range editor popover for per-playlist start/end selection and presets.
  */
-function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangePopoverProps) {
+function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange, onApply }: RangePopoverProps) {
   const [start, setStart] = React.useState<string>(range.start > 0 ? String(range.start) : "");
   const [end, setEnd] = React.useState<string>(range.end > 0 ? String(range.end) : "");
   const [presetCount, setPresetCount] = React.useState<string>("10");
@@ -62,7 +64,10 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
         <Button
           type="button"
           variant="outline"
-          className="h-auto rounded-md border-primary/35 bg-surface-raised px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-surface-dark hover:text-white"
+          className={cn(
+            "h-auto rounded-md border-primary/35 bg-surface-raised px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-surface-dark hover:text-white",
+            triggerClassName
+          )}
           disabled={disabled}
           title={
             range.unavailable

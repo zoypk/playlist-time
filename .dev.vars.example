@@ -1,1 +1,1 @@
-YOUTUBE_KEYS=<key1>,<key2>
+YOUTUBE_KEYS=your_youtube_api_key_here,your_fallback_youtube_api_key_here

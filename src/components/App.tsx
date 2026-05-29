@@ -201,7 +201,7 @@ function AppInner() {
         const errorById = new Map(batch.errors.map((entry) => [entry.playlistId, entry]));
 
         // Show toasts for each failed playlist
-        for (const [playlistId, rowError] of errorById.entries()) {
+        for (const rowError of errorById.values()) {
           const errorType = classifyRowError(rowError.status, rowError.error);
           const errorMessage = getFriendlyError(errorType, rowError.error);
           toast.error("Failed to fetch playlist", {

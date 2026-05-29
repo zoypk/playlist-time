@@ -24,10 +24,13 @@ pnpm-debug.log*
 # cloudflare/wrangler local state
 .wrangler/
 
+# local agent/tool state
+.omx/
+
 # macOS-specific files
 .DS_Store
 
 # jetbrains setting folder
 .idea/
 nul
-.lh-temp
+.lh-temp/
