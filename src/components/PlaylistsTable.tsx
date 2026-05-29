@@ -604,13 +604,13 @@ export default function PlaylistsTable({
         header: ({ column }) => (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="cursor-help">
+              <span className="block cursor-help">
                 <SortHeader
                   label="Views"
                   canSort={column.getCanSort()}
                   sorted={column.getIsSorted()}
                 />
-              </button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>Sum of individual video view counts</TooltipContent>
           </Tooltip>
@@ -627,13 +627,13 @@ export default function PlaylistsTable({
         header: ({ column }) => (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="cursor-help">
+              <span className="block cursor-help">
                 <SortHeader
                   label="Avg length"
                   canSort={column.getCanSort()}
                   sorted={column.getIsSorted()}
                 />
-              </button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>Average video duration (click to sort)</TooltipContent>
           </Tooltip>
@@ -662,14 +662,14 @@ export default function PlaylistsTable({
             : ({ column }) => (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="cursor-help">
+                  <span className="block cursor-help">
                     <SortHeader
                       label={speedColumn.label}
                       canSort={column.getCanSort()}
                       sorted={column.getIsSorted()}
                       primary={speedColumn.primary}
                     />
-                  </button>
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent>{speedColumn.speed === 1 ? "Baseline: watch time at 1x speed" : `Time duration at ${speedColumn.label}`}</TooltipContent>
               </Tooltip>
@@ -713,9 +713,9 @@ export default function PlaylistsTable({
       header: ({ column }) => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="cursor-help">
+            <span className="block cursor-help">
               <SortHeader label="Published" canSort={column.getCanSort()} sorted={column.getIsSorted()} />
-            </button>
+            </span>
           </TooltipTrigger>
           <TooltipContent>Latest upload date (click to sort)</TooltipContent>
         </Tooltip>
