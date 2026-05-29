@@ -1,5 +1,5 @@
 /**
- * Centralized configuration and constants for the yttime application.
+ * Centralized configuration and constants for the Playlist Time application.
  * Single source of truth for magic numbers, strings, and other configuration values.
  */
 
