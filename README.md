@@ -91,7 +91,7 @@ bun run pages:dev
 1. Connect repository to Cloudflare Pages.
 2. Build command: `bun run build`
 3. Build output directory: `dist`
-4. Set environment variable `YOUTUBE_KEYS` in Pages project settings.
+4. Set `YOUTUBE_KEYS` as a Pages environment variable, not in committed files.
 5. Keep `functions/` directory in repo so `/api/playlist` is deployed automatically.
 
 ### Option B: Wrangler CLI

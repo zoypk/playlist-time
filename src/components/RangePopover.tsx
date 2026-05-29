@@ -62,7 +62,7 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
         <Button
           type="button"
           variant="outline"
-          className="h-auto rounded-full border-primary/40 bg-black/50 px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-black hover:text-white"
+          className="h-auto rounded-md border-primary/35 bg-surface-raised px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-surface-dark hover:text-white"
           disabled={disabled}
           title={
             range.unavailable
@@ -78,7 +78,7 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
         <PopoverContent align="start" sideOffset={8} className="w-64">
           <TooltipProvider>
             <div className="mb-2 flex items-center justify-between border-b border-border-dark pb-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Edit range</span>
+              <span className="text-[10px] font-semibold uppercase text-warm-muted">Edit range</span>
               <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Close range editor" onClick={() => onOpenChange(false)}>
                 <X className="size-3.5" aria-hidden="true" />
               </Button>
@@ -86,7 +86,7 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
 
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label htmlFor="range-start" className="text-[10px] uppercase tracking-wide text-gray-500">
+                <label htmlFor="range-start" className="text-[10px] uppercase text-gray-500">
                   Start
                 </label>
               <Input
@@ -108,7 +108,7 @@ function RangePopover({ range, isOpen, disabled, onOpenChange, onApply }: RangeP
               />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="range-end" className="text-[10px] uppercase tracking-wide text-gray-500">
+                <label htmlFor="range-end" className="text-[10px] uppercase text-gray-500">
                   End
                 </label>
               <Input

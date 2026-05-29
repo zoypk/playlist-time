@@ -324,11 +324,11 @@ export function normalizeRangeForTotal(
 /** Mock data for example playlists - realistic tutorial and shorts series. */
 const EXAMPLE_DATA_1 = {
   playlistId: "PLexample001",
-  title: "Learn React in 100 Videos",
-  channelTitle: "Code Academy",
-  thumbnailUrl: "https://placehold.co/120x90/ec1313/ffffff?text=React",
-  publishedAt: "2023-06-15T10:00:00Z",
-  totalVideoViewsSum: 2500000,
+  title: "React patterns for production dashboards",
+  channelTitle: "Northstar Dev Notes",
+  thumbnailUrl: "https://picsum.photos/seed/react-patterns-dashboard/160/100",
+  publishedAt: "2023-07-18T10:00:00Z",
+  totalVideoViewsSum: 2417683,
   orderedDurationsSec: [
     // 100 videos with realistic durations (mostly 10-20 mins, some longer)
     ...Array(20).fill(600), // 10 min videos
@@ -341,11 +341,11 @@ const EXAMPLE_DATA_1 = {
 
 const EXAMPLE_DATA_2 = {
   playlistId: "PLexample002",
-  title: "Web Dev Shorts",
-  channelTitle: "Quick Code",
-  thumbnailUrl: "https://placehold.co/120x90/ec1313/ffffff?text=WebDev",
-  publishedAt: "2024-01-20T14:30:00Z",
-  totalVideoViewsSum: 1800000,
+  title: "Frontend build notes under eight minutes",
+  channelTitle: "Layer Five Labs",
+  thumbnailUrl: "https://picsum.photos/seed/frontend-build-notes/160/100",
+  publishedAt: "2024-02-09T14:30:00Z",
+  totalVideoViewsSum: 1782406,
   orderedDurationsSec: [
     // 50 short videos (mostly 3-8 minutes)
     ...Array(20).fill(180), // 3 min videos

@@ -23,7 +23,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
   return (
     <Accordion type="single" collapsible defaultValue="how-it-works">
       <AccordionItem value="how-it-works" className="border-none">
-        <AccordionTrigger className="rounded-t-xl text-sm font-semibold uppercase tracking-wide px-5 py-4 bg-surface-dark">
+        <AccordionTrigger className="rounded-t-lg bg-surface-dark px-5 py-4 text-sm font-semibold">
           How it works + FAQ
         </AccordionTrigger>
         <AccordionContent className="border-t border-border-dark">
@@ -31,7 +31,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
 
             {/* ── Introduction ── */}
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+              <h2 className="text-sm font-semibold text-primary">
                 What is Playlist Time?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-300">
@@ -44,7 +44,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
 
             {/* ── How It Works ── */}
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+              <h2 className="text-sm font-semibold text-primary">
                 How to Calculate YouTube Playlist Duration
               </h2>
               <p className="mt-3 text-sm text-gray-300">
@@ -64,7 +64,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
 
             {/* ── Features / Benefits ── */}
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+              <h2 className="text-sm font-semibold text-primary">
                 Features &amp; Benefits
               </h2>
               <ul className="mt-4 space-y-2 pl-5 text-sm text-gray-300 list-disc">
@@ -78,7 +78,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
 
             {/* ── Why Use This Tool ── */}
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+              <h2 className="text-sm font-semibold text-primary">
                 Why Use This Playlist Watch Time Calculator?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-300">
@@ -88,7 +88,7 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
 
             {/* ── FAQ ── */}
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+              <h2 className="text-sm font-semibold text-primary">
                 Frequently Asked Questions
               </h2>
               <FAQAccordion items={faq} />

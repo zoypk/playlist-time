@@ -102,6 +102,12 @@ const jsonLd = {
     <meta name="color-scheme" content="dark" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href={canonical} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.svg" />
@@ -128,41 +134,73 @@ const jsonLd = {
     <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   </head>
 
-  <body class="min-h-screen overflow-x-hidden selection:bg-primary/40">
+  <body class="min-h-screen">
+    <a href="#calculator" class="skip-link">Skip to calculator</a>
+
     <header
-      class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/95 px-6 py-3 shadow-md backdrop-blur"
+      class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/90 shadow-soft backdrop-blur"
     >
-      <div class="mx-auto flex w-full max-w-[1600px] items-center gap-3">
-        <div class="flex size-8 items-center justify-center text-primary">
+      <div class="site-frame flex items-center gap-3 py-3">
+        <a href="/" class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" aria-label="Playlist Time home">
+        <div class="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/30">
           <svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true">
             <path
               d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-2 5.8a.8.8 0 0 1 1.23-.67l5.23 3.37a.8.8 0 0 1 0 1.34l-5.23 3.37A.8.8 0 0 1 10 14.54V7.8Z"
             />
           </svg>
         </div>
-        <span class="text-xl font-bold tracking-tight text-white">Playlist Time</span>
+        <span class="text-xl font-bold text-white">Playlist Time</span>
+        </a>
+
+        <nav class="ml-auto hidden items-center gap-1 sm:flex" aria-label="Primary navigation">
+          <a class="rounded-md px-3 py-2 text-sm font-semibold text-warm-muted transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" href="#calculator">
+            Calculator
+          </a>
+          <a class="rounded-md px-3 py-2 text-sm font-semibold text-warm-muted transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" href="#seo-content">
+            Guide
+          </a>
+        </nav>
       </div>
     </header>
 
-    <main class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 p-6">
-      <section class="rounded-xl border border-border-dark bg-surface-dark">
-        <div class="border-b border-border-dark px-5 py-4">
-          <div>
-            <h1 class="text-2xl font-bold text-white">YouTube Playlist Length Calculator</h1>
-            <p class="mt-2 max-w-3xl text-sm text-gray-300">
-              Instantly calculate YouTube playlist duration and compare watch time at different playback speeds.
-              Paste one or more playlist links, set optional video ranges, and see exactly how long each playlist takes to finish.
+    <main class="site-frame flex flex-1 flex-col gap-5 py-5">
+      <section class="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/80 shadow-lift">
+        <div class="grid md:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+          <div class="p-5 md:p-6">
+            <p class="text-sm font-semibold text-primary">Playlist Time</p>
+            <h1 class="mt-2 max-w-3xl font-display text-3xl font-extrabold leading-tight text-white">
+              YouTube playlist length calculator
+            </h1>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-warm-muted">
+              Compare total watch time across playlists, playback speeds, and video ranges without signing in.
             </p>
           </div>
+
+          <aside class="border-t border-border-dark bg-surface-darker/80 p-5 md:border-l md:border-t-0" aria-label="Calculator summary">
+            <dl class="grid gap-2 sm:grid-cols-3 md:grid-cols-1">
+              <div class="rounded-md border border-border-dark bg-surface-raised/60 p-3 shadow-inset">
+                <dt class="text-xs font-medium text-warm-muted">Baseline</dt>
+                <dd class="mt-1 font-mono text-lg font-bold text-white">1x</dd>
+              </div>
+              <div class="rounded-md border border-border-dark bg-surface-raised/60 p-3 shadow-inset">
+                <dt class="text-xs font-medium text-warm-muted">Custom</dt>
+                <dd class="mt-1 font-mono text-lg font-bold text-white">0.1-3x</dd>
+              </div>
+              <div class="rounded-md border border-border-dark bg-surface-raised/60 p-3 shadow-inset">
+                <dt class="text-xs font-medium text-warm-muted">Ranges</dt>
+                <dd class="mt-1 font-mono text-lg font-bold text-white">Start/end</dd>
+              </div>
+            </dl>
+          </aside>
         </div>
       </section>
 
-      <section>
+      <section id="calculator" aria-label="Playlist calculator">
         <App client:idle />
       </section>
 
       {/* SEO + helpful content (accordion) */}
-      <section id="seo-content" class="rounded-xl border border-border-dark bg-surface-dark/80">
+      <section id="seo-content" class="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/70 shadow-soft">
         <ContentAccordion client:idle faq={faq} howItWorks={howItWorks} features={features} whyUse={whyUse} />
       </section>
     </main>

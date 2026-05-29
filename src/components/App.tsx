@@ -433,7 +433,7 @@ function AppInner() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-lift">
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
             <div className="min-w-0 flex-1">
@@ -461,11 +461,11 @@ function AppInner() {
               </p>
             </div>
 
-            <div className="w-full rounded-lg border border-border-dark bg-surface-dark p-3 lg:w-100">
+            <div className="w-full rounded-lg border border-border-dark bg-surface-raised/65 p-3 shadow-inset lg:w-100">
               <div className="mb-3">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="text-xs font-medium uppercase tracking-wide text-gray-400 cursor-help">Default range</span>
+                    <span className="cursor-help text-xs font-semibold text-warm-muted">Default range</span>
                   </TooltipTrigger>
                   <TooltipContent>Automatically apply this range to newly added playlists</TooltipContent>
                 </Tooltip>
@@ -510,10 +510,10 @@ function AppInner() {
                     type="button"
                     onClick={analyzeInput}
                     size="lg"
-                    className="w-full gap-2 text-sm font-bold tracking-wide active:scale-[0.98]"
+                    className="w-full gap-2 text-sm font-bold"
                     disabled={!inputText.trim()}
                   >
-                    <span className="text-lg">↵</span>
+                    <WandSparkles className="size-4" aria-hidden="true" />
                     Analyze
                   </Button>
                 </TooltipTrigger>
@@ -525,21 +525,23 @@ function AppInner() {
       </Card>
 
       {rows.length === 0 && (
-        <section className="rounded-xl border border-border-dark bg-black/60 p-8 text-center">
-          <p className="text-lg font-semibold text-gray-100">Compare playlist time at every speed in one table.</p>
-          <p className="mt-2 text-sm text-gray-400">
-            Paste one or more playlist URLs/IDs above, then adjust custom speed and per-playlist ranges.
-          </p>
+        <section className="grid gap-4 rounded-lg border border-dashed border-border-contrast bg-surface-dark/70 p-6 text-left shadow-soft md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <div>
+            <p className="text-lg font-semibold text-gray-100">No playlists loaded</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-muted">
+              Add playlist links above or load sample rows to inspect the comparison table.
+            </p>
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 type="button"
                 variant="outline"
-                className="mt-4 text-xs font-semibold uppercase tracking-wide"
+                className="w-fit text-xs font-semibold"
                 onClick={() => setRows(getExampleRows())}
               >
                 <WandSparkles className="mr-2 size-3.5" />
-                Example
+                Load sample rows
               </Button>
             </TooltipTrigger>
             <TooltipContent>Load sample playlists to explore features</TooltipContent>

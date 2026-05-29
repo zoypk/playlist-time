@@ -167,8 +167,8 @@ export default function PlaylistsTable({
                     <div className="flex flex-col gap-1 text-center">
                       <span>Drag to reorder</span>
                       <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400">
-                        <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px]">↑</kbd>
-                        <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px]">↓</kbd>
+                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">↑</kbd>
+                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">↓</kbd>
                         <span>to move</span>
                       </div>
                     </div>
@@ -236,7 +236,7 @@ export default function PlaylistsTable({
             <div className="flex w-full min-w-0 items-center gap-4 select-none">
               <Popover>
                 <PopoverTrigger asChild>
-                  <div className="hidden h-10 w-16 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60 cursor-pointer md:block">
+                  <div className="hidden h-10 w-16 shrink-0 cursor-pointer overflow-hidden rounded border border-border-dark bg-surface-raised md:block">
                     {item.data?.thumbnailUrl ? (
                       <img
                         src={item.data.thumbnailUrl}
@@ -249,12 +249,12 @@ export default function PlaylistsTable({
                         fetchPriority="low"
                       />
                     ) : (
-                      <div className="h-full w-full bg-linear-to-br from-black via-zinc-900 to-zinc-800" />
+                      <div className="h-full w-full bg-linear-to-br from-surface-darker via-surface-dark to-surface-raised" />
                     )}
                   </div>
                 </PopoverTrigger>
                 {item.data?.thumbnailUrl && (
-                  <PopoverContent side="right" className="w-fit border-border-dark bg-black p-0">
+                  <PopoverContent side="right" className="w-fit border-border-dark bg-surface-darker p-0">
                     <img
                       src={item.data.thumbnailUrl}
                       alt={`${playlistTitle} thumbnail`}
@@ -371,7 +371,7 @@ export default function PlaylistsTable({
           speedColumn.id === "speed_custom"
             ? () => (
               <div className="flex flex-col items-center justify-center gap-2">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-300">{speedColumn.label}</div>
+                <div className="text-[10px] font-bold uppercase text-gray-300">{speedColumn.label}</div>
                 <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
               </div>
             )
@@ -552,7 +552,7 @@ export default function PlaylistsTable({
           <CardHeader className="flex flex-row items-center justify-between gap-2 py-2">
             <div className="flex min-w-0 items-center gap-2.5">
               {item.data?.thumbnailUrl && (
-                <div className="h-12 w-20 shrink-0 overflow-hidden rounded border border-border-dark bg-black/60">
+                <div className="h-12 w-20 shrink-0 overflow-hidden rounded border border-border-dark bg-surface-raised">
                   <img
                     src={item.data.thumbnailUrl}
                     alt={`${playlistTitle} thumbnail`}
@@ -647,7 +647,7 @@ export default function PlaylistsTable({
               {/* Speed Times - Vertical Comparison slow to fast */}
               <div className="space-y-2 border-t border-border-dark pt-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Watch times</span>
+                  <span className="text-xs font-semibold uppercase text-warm-muted">Watch times</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] text-gray-500">Custom:</span>
                     <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
@@ -856,7 +856,7 @@ export default function PlaylistsTable({
         <TableFooter>
           <TableRow role="row">
             <TableCell role="cell" />
-            <TableCell role="cell" className="text-sm font-medium uppercase tracking-wider text-gray-300">
+            <TableCell role="cell" className="text-sm font-medium uppercase text-gray-300">
               Total
             </TableCell>
             <TableCell role="cell" />
@@ -877,19 +877,6 @@ export default function PlaylistsTable({
           </TableRow>
         </TableFooter>
       </Table>
-
-      <div className="mt-2 hidden items-center gap-3 text-[10px] text-gray-500 md:flex">
-        <span className="font-medium text-gray-400">Keyboard shortcuts:</span>
-        <div className="flex items-center gap-1">
-          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↑</kbd>
-          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↓</kbd>
-          <span>move rows</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <kbd className="rounded border border-border-dark bg-black px-1 py-0.5 font-mono text-[9px] text-gray-400">↵</kbd>
-          <span>sort columns</span>
-        </div>
-      </div>
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}

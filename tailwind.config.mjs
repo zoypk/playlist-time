@@ -5,24 +5,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#ff4c4c",
-        "primary-dark": "#e63939",
-        "background-dark": "#0A0D15",
-        "surface-dark": "#0a0a0a",
-        "surface-darker": "#050505",
-        "border-dark": "#2a2a2a",
-        "border-contrast": "#000000",
+        primary: "#e24c43",
+        "primary-dark": "#bf3933",
+        "background-dark": "#11100f",
+        "surface-dark": "#171615",
+        "surface-darker": "#0d0c0b",
+        "surface-raised": "#211f1d",
+        "border-dark": "#37312d",
+        "border-contrast": "#5f5149",
+        "warm-muted": "#a79c91",
       },
       fontFamily: {
-        display: [
+        sans: [
+          "Outfit",
+          "ui-sans-serif",
           "system-ui",
-          "-apple-system",
-          "Segoe UI",
-          "Helvetica Neue",
-          "Arial",
+          "sans-serif",
+        ],
+        display: [
+          "Outfit",
+          "ui-sans-serif",
+          "system-ui",
           "sans-serif",
         ],
         mono: [
+          "JetBrains Mono",
           "ui-monospace",
           "SFMono-Regular",
           "Consolas",
@@ -32,7 +39,9 @@ export default {
         ],
       },
       boxShadow: {
-        soft: "0 10px 30px rgba(0, 0, 0, 0.35)",
+        soft: "0 16px 40px rgba(4, 3, 2, 0.36)",
+        lift: "0 24px 80px rgba(8, 5, 3, 0.44)",
+        inset: "inset 0 1px 0 rgba(255, 244, 232, 0.05)",
       },
       keyframes: {
         "accordion-down": {
