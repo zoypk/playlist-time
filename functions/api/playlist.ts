@@ -94,8 +94,8 @@ const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 export const FRESH_TTL_SECONDS = 15 * 60;
 const VIDEO_BATCH_CONCURRENCY = 4;
 
-export const CACHE_TIMESTAMP_HEADER = "x-playlist-time-cached-at";
-export const CACHE_STATUS_HEADER = "x-playlist-time-cache";
+export const CACHE_TIMESTAMP_HEADER = "x-yttime-cached-at";
+export const CACHE_STATUS_HEADER = "x-yttime-cache";
 
 /** Map to track in-flight requests and prevent duplicate API calls for the same playlist. */
 const inflightRequests = new Map<string, Promise<Response>>();

@@ -1,4 +1,4 @@
-# robots.txt for playlisttime.app
+# robots.txt for playlist-time.pages.dev
 
 # Allow all crawlers
 User-agent: *
@@ -9,4 +9,4 @@ User-agent: *
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://playlisttime.app/sitemap.xml
+Sitemap: https://playlist-time.pages.dev/sitemap.xml

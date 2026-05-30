@@ -109,6 +109,7 @@ async function fetchPlaylistsBatch(
  */
 function AppInner() {
   const playlistCacheRef = React.useRef<PlaylistCacheMap>({});
+  const isDemoModeRef = React.useRef(false);
 
   const [inputText, setInputText] = React.useState("");
   const [rows, setRows] = React.useState<PlaylistRow[]>([]);
@@ -271,6 +272,14 @@ function AppInner() {
   React.useEffect(() => {
     playlistCacheRef.current = readPlaylistCache();
 
+    const isDemoMode = new URLSearchParams(window.location.search).get("demo") === "1";
+    isDemoModeRef.current = isDemoMode;
+
+    if (isDemoMode) {
+      setRows(getExampleRows());
+      return;
+    }
+
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return;
 
@@ -334,6 +343,8 @@ function AppInner() {
 
   /** Persists relevant UI state to sessionStorage after each change. */
   React.useEffect(() => {
+    if (isDemoModeRef.current) return;
+
     const payload: PersistedState = {
       version: 1,
       sorting,

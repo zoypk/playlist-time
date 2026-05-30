@@ -1,13 +1,13 @@
 /**
- * Centralized configuration and constants for the Playlist Time application.
+ * Centralized configuration and constants for the yttime application.
  * Single source of truth for magic numbers, strings, and other configuration values.
  */
 
 /** Storage key for persisted UI state (sorting, ranges, preferences) */
-export const STORAGE_KEY = "playlist-time:v1";
+export const STORAGE_KEY = "yttime:v1";
 
 /** Storage key for playlist cache data */
-export const PLAYLIST_CACHE_KEY = "playlist-time:playlist-cache:v1";
+export const PLAYLIST_CACHE_KEY = "yttime:playlist-cache:v1";
 
 /**
  * Client-side cache TTL for playlist metadata.

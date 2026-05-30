@@ -5,7 +5,7 @@ import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://yttime.pages.dev",
+  site: "https://playlist-time.pages.dev",
   integrations: [react()],
   output: "static",
   vite: {

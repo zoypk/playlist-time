@@ -3,23 +3,23 @@ import App from "../components/App";
 import { ContentAccordion } from "../components/ContentAccordion";
 import "../styles/global.css";
 
-const site = "https://yttime.pages.dev";
+const site = "https://playlist-time.pages.dev";
 const canonical = new URL("/", site).toString();
 const socialImage = new URL("/og.svg", site).toString();
-const socialImageAlt = "Playlist Time — free YouTube Playlist Length Calculator";
+const socialImageAlt = "yttime - free YouTube playlist length calculator";
 
-const title = "YouTube Playlist Length Calculator — Playlist Time";
+const title = "yttime - YouTube Playlist Length Calculator";
 const description =
-  "Calculate YouTube playlist duration instantly. See total playlist time at 1x, 1.25x, 1.5x, and custom speeds. Free online playlist calculator — no login needed.";
+  "Calculate YouTube playlist duration instantly. See total playlist time at 1x, 1.25x, 1.5x, and custom speeds. Free online playlist calculator with no login.";
 
 const faq = [
   {
     q: "How do I calculate YouTube playlist duration?",
-    a: "Paste one or more playlist URLs into the input field and click Analyze. Playlist Time fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
+    a: "Paste one or more playlist URLs into the input field and click Analyze. yttime fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
   },
   {
     q: "How long is a YouTube playlist at 1.5x speed?",
-    a: "Playlist Time divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, or set any custom speed."
+    a: "yttime divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, or set any custom speed."
   },
   {
     q: "Can I compare multiple playlists at once?",
@@ -35,7 +35,7 @@ const faq = [
   },
   {
     q: "Is my data stored anywhere?",
-    a: "No. Playlist Time runs entirely in your browser. Any saved data is stored locally so your list can persist on refresh. Nothing is uploaded to a server or shared publicly."
+    a: "No account is needed. Playlist IDs are sent to the serverless API so it can query YouTube, but saved calculator state stays in your browser session and is not shared publicly."
   }
 ];
 
@@ -51,7 +51,7 @@ const features = [
   { title: "Multiple playlist support", detail: "Analyze as many playlists as you want in a single session and compare them side by side." },
   { title: "Flexible speed control", detail: "Preset columns for 1x, 1.25x, 1.5x, and 1.75x — plus a custom speed slider for any pace." },
   { title: "Per-playlist video ranges", detail: "Set a global default range or override it for each playlist to calculate partial durations." },
-  { title: "No login required", detail: "Completely free. No sign-up, no ads, and no data leaves your browser." },
+  { title: "No login required", detail: "No sign-up and no account data. Playlist IDs are sent only to the serverless API that queries YouTube." },
   { title: "Instant results", detail: "Results appear in seconds. Works on desktop, tablet, and mobile browsers." }
 ];
 
@@ -62,13 +62,13 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "WebSite",
-      name: "Playlist Time",
+      name: "yttime",
       url: canonical,
       description
     },
     {
       "@type": "WebApplication",
-      name: "Playlist Time",
+      name: "yttime",
       url: canonical,
       applicationCategory: "UtilityApplication",
       operatingSystem: "Any",
@@ -118,7 +118,7 @@ const jsonLd = {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:site_name" content="Playlist Time" />
+    <meta property="og:site_name" content="yttime" />
     <meta property="og:image" content={socialImage} />
     <meta property="og:image:alt" content={socialImageAlt} />
     <meta property="og:image:type" content="image/svg+xml" />
@@ -141,7 +141,7 @@ const jsonLd = {
       class="sticky top-0 z-40 border-b border-border-dark bg-surface-darker/90 shadow-soft backdrop-blur"
     >
       <div class="site-frame flex items-center gap-3 py-3">
-        <a href="/" class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" aria-label="Playlist Time home">
+        <a href="/" class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" aria-label="yttime home">
         <div class="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/30">
           <svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true">
             <path
@@ -149,7 +149,7 @@ const jsonLd = {
             />
           </svg>
         </div>
-        <span class="text-xl font-bold text-white">Playlist Time</span>
+        <span class="text-xl font-bold text-white">yttime</span>
         </a>
 
         <nav class="ml-auto hidden items-center gap-1 sm:flex" aria-label="Primary navigation">
@@ -167,7 +167,7 @@ const jsonLd = {
       <section class="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/80 shadow-lift">
         <div class="grid md:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
           <div class="p-5 md:p-6">
-            <p class="text-sm font-semibold text-primary">Playlist Time</p>
+            <p class="text-sm font-semibold text-primary">yttime</p>
             <h1 class="mt-2 max-w-3xl font-display text-3xl font-extrabold leading-tight text-white">
               YouTube playlist length calculator
             </h1>
@@ -196,7 +196,7 @@ const jsonLd = {
       </section>
 
       <section id="calculator" aria-label="Playlist calculator">
-        <App client:idle />
+        <App client:load />
       </section>
 
       {/* SEO + helpful content (accordion) */}

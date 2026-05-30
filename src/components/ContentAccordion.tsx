@@ -31,13 +31,13 @@ export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentA
             {/* ── Introduction ── */}
             <section>
               <h2 className="text-sm font-semibold text-primary">
-                What is Playlist Time?
+                What is yttime?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                Playlist Time is a free <strong>YouTube Playlist Length Calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed — 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
+                yttime is a free <strong>YouTube Playlist Length Calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed — 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-gray-300">
-                Unlike manually scrolling through every video to add up durations, our <strong>YouTube playlist length calculator</strong> does the math for you in seconds. It also handles partial playlists: set a start and end range to calculate the duration of only the videos you actually plan to watch.
+                Unlike manually scrolling through every video to add up durations, this <strong>YouTube playlist length calculator</strong> does the math for you in seconds. It also handles partial playlists: set a start and end range to calculate the duration of only the videos you actually plan to watch.
               </p>
             </section>
 

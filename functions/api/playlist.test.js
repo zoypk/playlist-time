@@ -24,12 +24,12 @@ describe("playlist API helpers", () => {
 
   test("builds canonical cache keys without request-only query params", () => {
     const request = new Request(
-      "https://yttime.pages.dev/api/playlist?list=PLabc1234567890&refresh=1",
+      "https://playlist-time.pages.dev/api/playlist?list=PLabc1234567890&refresh=1",
     );
     const cacheKey = buildPlaylistCacheKey(request, "PLabc1234567890");
 
     expect(cacheKey.url).toBe(
-      "https://yttime.pages.dev/api/playlist?list=PLabc1234567890",
+      "https://playlist-time.pages.dev/api/playlist?list=PLabc1234567890",
     );
     expect(cacheKey.method).toBe("GET");
   });
