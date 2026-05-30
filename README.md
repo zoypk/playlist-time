@@ -4,7 +4,7 @@ YouTube playlist watch-time calculator for planning courses, study queues, and l
 
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
-![yttime calculator with sample playlist rows](docs/yttime-sample-rows.png)
+![yttime first viewport with demo playlist results](docs/yttime-first-viewport.png)
 
 ## Problem
 
@@ -138,6 +138,8 @@ Build settings:
 - Functions directory: `functions`
 - Production variable: `YOUTUBE_KEYS`
 
+Cloudflare Pages runs production builds on deploy; local verification uses `bun run check`, `bun run test`, and `bun run build`.
+
 Manual deployment command:
 
 ```bash
@@ -151,7 +153,9 @@ Production secrets should be configured in Cloudflare Pages, not committed to th
 
 - Live app: [playlist-time.pages.dev](https://playlist-time.pages.dev)
 - Deterministic sample: [playlist-time.pages.dev/?demo=1](https://playlist-time.pages.dev/?demo=1)
-- Screenshot: [docs/yttime-sample-rows.png](docs/yttime-sample-rows.png)
+- Desktop screenshot: [docs/yttime-first-viewport.png](docs/yttime-first-viewport.png)
+- Mobile screenshot: [docs/yttime-mobile.png](docs/yttime-mobile.png)
+- Table detail screenshot: [docs/yttime-sample-rows.png](docs/yttime-sample-rows.png)
 
 ## Limitations
 

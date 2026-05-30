@@ -32,5 +32,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# editor workspace settings
+.vscode/
+
 nul
 .lh-temp/

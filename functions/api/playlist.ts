@@ -102,6 +102,13 @@ const inflightRequests = new Map<string, Promise<Response>>();
 
 let keyCursor = 0;
 
+function logPlaylistEvent(
+  event: string,
+  details: Record<string, number | string> = {},
+) {
+  console.log("[Playlist]", JSON.stringify({ event, ...details }));
+}
+
 /** Parses configured YouTube API keys from env string. */
 export function parseYoutubeKeys(raw: string) {
   return (raw || "")
@@ -564,16 +571,20 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
 
   const buildAndStoreResponse = async () => {
     const startTime = Date.now();
-    console.log(`[Playlist] Building data for ${playlistId}`);
-    
+    logPlaylistEvent("build_start", { status: "started" });
+
     const dtoOrError = await buildPlaylistDto(playlistId, keys);
     if (dtoOrError instanceof Response) {
-      console.log(`[Playlist] Error for ${playlistId}: ${dtoOrError.status}`);
+      logPlaylistEvent("build_error", { status: dtoOrError.status });
       return dtoOrError;
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[Playlist] Success ${playlistId}: ${dtoOrError.orderedDurationsSec.length} videos in ${duration}ms`);
+    logPlaylistEvent("build_success", {
+      status: 200,
+      videoCount: dtoOrError.orderedDurationsSec.length,
+      durationMs: duration,
+    });
 
     const response = json(dtoOrError, 200, {
       "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}`,
@@ -587,7 +598,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   if (!forceRefresh) {
     const cached = await cache.match(cacheKey);
     if (cached) {
-      console.log(`[Playlist] Cache HIT for ${playlistId}`);
+      logPlaylistEvent("cache_lookup", { status: "hit" });
       return withCacheStatus(cached, "HIT");
     }
   }
@@ -595,7 +606,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   // Check for in-flight request to prevent duplicate API calls
   const existingRequest = inflightRequests.get(playlistId);
   if (existingRequest) {
-    console.log(`[Playlist] Deduplicating request for ${playlistId}`);
+    logPlaylistEvent("deduplicate", { status: "joined" });
     const response = await existingRequest;
     return withCacheStatus(response.clone(), forceRefresh ? "BYPASS" : "MISS");
   }
