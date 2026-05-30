@@ -3,9 +3,6 @@
 # Allow all crawlers
 User-agent: *
 Allow: /
-
-# Disallow API endpoints from being indexed
-User-agent: *
 Disallow: /api/
 
 # Sitemap location

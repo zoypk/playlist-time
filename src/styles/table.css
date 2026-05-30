@@ -14,7 +14,7 @@ tfoot tr {
     minmax(200px, 2.6fr)
     minmax(78px, 0.5fr)
     minmax(104px, 0.72fr)
-    repeat(4, minmax(56px, 0.38fr))
+    repeat(5, minmax(56px, 0.38fr))
     minmax(110px, 0.75fr)
     minmax(99px, 0.92fr);
 }
@@ -26,7 +26,7 @@ tfoot tr {
     grid-template-columns:
       40px
       minmax(120px, 2.6fr)
-      repeat(4, minmax(56px, 0.38fr))
+      repeat(5, minmax(56px, 0.38fr))
       minmax(110px, 0.75fr)
       minmax(78px, 0.5fr)
       minmax(104px, 0.72fr)
@@ -79,6 +79,12 @@ tfoot tr {
   thead th:nth-child(10),
   tbody td:nth-child(10),
   tfoot td:nth-child(10) {
+    order: 3;
+  }
+
+  thead th:nth-child(11),
+  tbody td:nth-child(11),
+  tfoot td:nth-child(11) {
     order: 6;
   }
 }
@@ -88,16 +94,16 @@ tbody td,
 tfoot td {
   display: flex;
   align-items: center;
-  border-right: 1px solid rgba(55, 49, 45, 0.58);
+  border-right: 1px solid rgba(39, 51, 56, 0.72);
   padding: 0.625rem;
 }
 
 thead th {
-  border-right-color: rgba(95, 81, 73, 0.55);
+  border-right-color: rgba(74, 90, 96, 0.55);
 }
 
 tfoot td {
-  border-right-color: rgba(255, 244, 232, 0.08);
+  border-right-color: rgba(230, 248, 250, 0.08);
   padding: 0.75rem;
 }
 
@@ -108,10 +114,10 @@ tfoot td:last-child {
 }
 
 .glass-footer {
-  background: rgba(17, 16, 15, 0.9);
+  background: rgba(8, 12, 14, 0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(226, 76, 67, 0.32);
+  border-top: 1px solid rgba(105, 198, 188, 0.24);
 }
 
 .drag-handle {

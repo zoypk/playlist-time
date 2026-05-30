@@ -7,13 +7,15 @@ import {
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Copy, Download, ExternalLink, GripVertical, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import RangePopover from "./RangePopover";
 import SpeedControl from "./SpeedControl";
 import "../styles/table.css";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -26,6 +28,7 @@ import {
   formatDuration,
   formatRelativeTime,
   formatViews,
+  getRangePillLabel,
   getRowMetrics
 } from "./utils";
 
@@ -75,7 +78,7 @@ function SortHeader({
   return (
     <div className={`flex items-center justify-between gap-2 ${primary ? "font-extrabold text-primary" : ""}`} title={fullTitle}>
       <span className="truncate">{label}</span>
-      {canSort && <span className={`${sorted ? "text-primary" : "text-gray-500"}`}>{icon}</span>}
+      {canSort && <span className={`${sorted ? "text-primary" : "text-warm-muted/70"}`}>{icon}</span>}
     </div>
   );
 }
@@ -134,11 +137,11 @@ function MobileSpeedTile({
     <div
       className={`min-w-0 rounded-md border p-3 ${
         primary
-          ? "border-primary/45 bg-primary/12"
-          : "border-border-dark bg-surface-darker/86"
+          ? "border-primary/45 bg-primary/15"
+          : "border-border-dark bg-background-dark/90"
       }`}
     >
-      <div className={`text-xs font-bold ${primary ? "text-primary" : "text-gray-400"}`}>{label}</div>
+      <div className={`text-xs font-bold ${primary ? "text-primary" : "text-warm-muted"}`}>{label}</div>
       <div className={`mt-1 font-mono text-lg font-extrabold leading-tight ${primary ? "text-primary" : "text-gray-100"}`}>
         {value}
       </div>
@@ -177,7 +180,7 @@ function MobilePlaylistCard({
 
   if (row.status === "loading") {
     return (
-      <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-soft">
+      <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/90 shadow-soft">
         <div className="flex items-center gap-3 p-4">
           <Skeleton className="h-14 w-24 shrink-0 border border-border-dark" />
           <div className="min-w-0 flex-1 space-y-2">
@@ -207,7 +210,7 @@ function MobilePlaylistCard({
 
   if (row.status === "error") {
     return (
-      <article className="overflow-hidden rounded-lg border border-red-900/60 bg-surface-dark shadow-soft">
+      <article className="overflow-hidden rounded-lg border border-red-900/60 bg-surface-dark/90 shadow-soft">
         <div className="flex items-start gap-3 p-4">
           <div className="min-w-0 flex-1 space-y-2">
             <ErrorBadge type={row.errorType} />
@@ -238,7 +241,7 @@ function MobilePlaylistCard({
   const secondarySpeeds = speedColumns.filter((speedColumn) => speedColumn.id !== primarySpeed.id);
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-soft">
+    <article className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/90 shadow-soft">
       <div className="flex items-start gap-3 p-4">
         <div className="h-14 w-24 shrink-0 overflow-hidden rounded-md border border-border-dark bg-surface-raised">
           {row.data?.thumbnailUrl ? (
@@ -273,7 +276,7 @@ function MobilePlaylistCard({
           ) : (
             <h3 className="text-base font-bold leading-snug text-gray-100">{playlistTitle}</h3>
           )}
-          <p className="mt-1 truncate text-sm text-gray-500">{row.data?.channelTitle || "Unknown channel"}</p>
+          <p className="mt-1 truncate text-sm text-warm-muted">{row.data?.channelTitle || "Unknown channel"}</p>
         </div>
 
         <Button
@@ -288,19 +291,19 @@ function MobilePlaylistCard({
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 border-y border-border-dark bg-surface-darker/70">
+      <div className="grid grid-cols-3 border-y border-border-dark bg-background-dark/70">
         <div className="border-r border-border-dark p-3">
-          <div className="text-[11px] font-semibold text-gray-500">Videos</div>
+          <div className="text-[11px] font-semibold text-warm-muted">Videos</div>
           <div className="mt-1 font-mono text-sm font-bold text-gray-100">
             {metrics.range.selectedCount}/{metrics.range.totalVideos}
           </div>
         </div>
         <div className="border-r border-border-dark p-3">
-          <div className="text-[11px] font-semibold text-gray-500">Views</div>
+          <div className="text-[11px] font-semibold text-warm-muted">Views</div>
           <div className="mt-1 font-mono text-sm font-bold text-gray-100">{formatViews(row.data?.totalVideoViewsSum ?? 0)}</div>
         </div>
         <div className="p-3">
-          <div className="text-[11px] font-semibold text-gray-500">Avg</div>
+          <div className="text-[11px] font-semibold text-warm-muted">Avg</div>
           <div className="mt-1 font-mono text-sm font-bold text-gray-100">{formatAvgDuration(metrics.avgLengthSec)}</div>
         </div>
       </div>
@@ -315,7 +318,7 @@ function MobilePlaylistCard({
           onApply={onRangeApply}
         />
         <div className="flex shrink-0 items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500">Custom</span>
+          <span className="text-xs font-semibold text-warm-muted">Custom</span>
           <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} />
         </div>
       </div>
@@ -347,11 +350,19 @@ function MobilePlaylistCard({
   );
 }
 
+type TotalsSummary = {
+  totalSelectedDuration: number;
+  totalSelectedVideos: number;
+  totalViews: number;
+  avgLength: number;
+  successfulRows: number;
+};
+
 function MobileTotalsCard({
   totals,
   speedColumns
 }: {
-  totals: { totalSelectedDuration: number; avgLength: number };
+  totals: TotalsSummary;
   speedColumns: SpeedColumn[];
 }) {
   const primarySpeed = speedColumns.find((speedColumn) => speedColumn.primary) ?? speedColumns[0];
@@ -359,11 +370,11 @@ function MobileTotalsCard({
   const selected = totals.totalSelectedDuration;
 
   return (
-    <article className="overflow-hidden rounded-lg border border-primary/35 bg-surface-dark shadow-soft">
+    <article className="overflow-hidden rounded-lg border border-primary/35 bg-surface-dark/90 shadow-soft">
       <div className="flex items-center justify-between gap-3 border-b border-border-dark px-4 py-3">
         <div>
-          <h3 className="text-base font-extrabold uppercase text-gray-100">Total</h3>
-          <p className="mt-1 text-sm text-gray-500">Average video {formatAvgDuration(totals.avgLength)}</p>
+          <h3 className="text-base font-extrabold text-gray-100">Total watch time</h3>
+          <p className="mt-1 text-sm text-warm-muted">Average video {formatAvgDuration(totals.avgLength)}</p>
         </div>
       </div>
       <div className="p-4">
@@ -390,6 +401,220 @@ function MobileTotalsCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function formatCalendarDate(offsetDays: number) {
+  if (!Number.isFinite(offsetDays) || offsetDays <= 0) return "-";
+  const date = new Date();
+  date.setDate(date.getDate() + Math.max(0, offsetDays - 1));
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+}
+
+function escapeCsvValue(value: string | number) {
+  const raw = String(value);
+  return /[",\n\r]/.test(raw) ? `"${raw.replace(/"/g, '""')}"` : raw;
+}
+
+function getPlaylistExportRows(
+  rows: PlaylistRow[],
+  metricsById: Map<string, RowMetrics>,
+  customSpeed: number
+) {
+  return rows
+    .filter((row) => row.status === "success")
+    .map((row) => {
+      const metrics = metricsById.get(row.id);
+      const selectedSeconds = metrics?.selectedDurationSec ?? 0;
+      const playlistTitle = row.data?.title?.trim() || row.playlistId || "Playlist";
+      const playlistUrl = buildPlaylistUrl(row.playlistId) ?? "";
+      const range = metrics?.range;
+
+      return {
+        playlistTitle,
+        channelTitle: row.data?.channelTitle || "Unknown channel",
+        playlistId: row.playlistId ?? "",
+        selectedVideos: range?.selectedCount ?? 0,
+        totalVideos: range?.totalVideos ?? 0,
+        rangeLabel: range ? getRangePillLabel(range) : "-",
+        duration1x: formatDuration(selectedSeconds),
+        durationCustom: formatDuration(selectedSeconds / customSpeed),
+        customSpeed: customSpeed.toFixed(2),
+        views: row.data?.totalVideoViewsSum ?? 0,
+        published: formatDateLabel(row.data?.publishedAt ?? null),
+        playlistUrl
+      };
+    });
+}
+
+function buildCopySummary(
+  rows: PlaylistRow[],
+  metricsById: Map<string, RowMetrics>,
+  customSpeed: number,
+  totals: TotalsSummary,
+  dailyMinutes: number,
+  planDays: number
+) {
+  const adjustedTotal = totals.totalSelectedDuration / customSpeed;
+  const lines = [
+    "yttime playlist watch-time summary",
+    `Playlists: ${totals.successfulRows}`,
+    `Videos selected: ${totals.totalSelectedVideos}`,
+    `Views: ${formatViews(totals.totalViews)}`,
+    `Total at 1x: ${formatDuration(totals.totalSelectedDuration)}`,
+    `Total at ${customSpeed.toFixed(2)}x: ${formatDuration(adjustedTotal)}`,
+    `Daily plan: ${dailyMinutes} min/day for ${planDays} day${planDays === 1 ? "" : "s"}`,
+    "",
+    ...getPlaylistExportRows(rows, metricsById, customSpeed).map(
+      (entry) =>
+        `- ${entry.playlistTitle}: ${entry.selectedVideos}/${entry.totalVideos} videos, ${entry.duration1x} at 1x, ${entry.durationCustom} at ${entry.customSpeed}x`
+    )
+  ];
+
+  return lines.join("\n");
+}
+
+function buildCsvSummary(
+  rows: PlaylistRow[],
+  metricsById: Map<string, RowMetrics>,
+  customSpeed: number
+) {
+  const header = [
+    "Playlist",
+    "Channel",
+    "Playlist ID",
+    "Selected videos",
+    "Total videos",
+    "Range",
+    "Duration at 1x",
+    `Duration at ${customSpeed.toFixed(2)}x`,
+    "Views",
+    "Published",
+    "YouTube URL"
+  ];
+  const body = getPlaylistExportRows(rows, metricsById, customSpeed).map((entry) => [
+    entry.playlistTitle,
+    entry.channelTitle,
+    entry.playlistId,
+    entry.selectedVideos,
+    entry.totalVideos,
+    entry.rangeLabel,
+    entry.duration1x,
+    entry.durationCustom,
+    entry.views,
+    entry.published,
+    entry.playlistUrl
+  ]);
+
+  return [header, ...body]
+    .map((line) => line.map((cell) => escapeCsvValue(cell)).join(","))
+    .join("\n");
+}
+
+function WatchPlanPanel({
+  rows,
+  metricsById,
+  totals,
+  customSpeed
+}: {
+  rows: PlaylistRow[];
+  metricsById: Map<string, RowMetrics>;
+  totals: TotalsSummary;
+  customSpeed: number;
+}) {
+  const [dailyMinutes, setDailyMinutes] = React.useState(60);
+  const safeDailyMinutes = Math.max(1, dailyMinutes || 1);
+  const adjustedTotalSeconds = totals.totalSelectedDuration / customSpeed;
+  const planDays = adjustedTotalSeconds > 0 ? Math.ceil(adjustedTotalSeconds / (safeDailyMinutes * 60)) : 0;
+  const finishDate = formatCalendarDate(planDays);
+  const videosPerDay = planDays > 0 ? Math.ceil(totals.totalSelectedVideos / planDays) : 0;
+
+  const copySummary = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(
+        buildCopySummary(rows, metricsById, customSpeed, totals, safeDailyMinutes, planDays)
+      );
+      toast.success("Summary copied");
+    } catch {
+      toast.error("Could not copy summary");
+    }
+  }, [customSpeed, metricsById, planDays, rows, safeDailyMinutes, totals]);
+
+  const downloadCsv = React.useCallback(() => {
+    const csv = buildCsvSummary(rows, metricsById, customSpeed);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "yttime-playlist-summary.csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    toast.success("CSV downloaded");
+  }, [customSpeed, metricsById, rows]);
+
+  if (totals.successfulRows === 0) return null;
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-border-dark bg-surface-dark/92 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)_auto] lg:items-center">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-sm font-extrabold text-gray-100">
+          <CalendarDays className="size-4 text-primary" aria-hidden="true" />
+          <h2 className="text-sm font-extrabold">Daily watch planner</h2>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-warm-muted">
+          At <span className="font-mono text-gray-200">{customSpeed.toFixed(2)}x</span>, this selection takes{" "}
+          <span className="font-mono font-semibold text-gray-100">{formatDuration(adjustedTotalSeconds)}</span>. Use a daily goal to estimate a realistic finish date.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <label className="rounded-md border border-border-dark bg-background-dark/82 p-3 shadow-inset">
+          <span className="block text-[11px] font-semibold text-warm-muted">Min/day</span>
+          <Input
+            type="number"
+            min={1}
+            step={5}
+            value={dailyMinutes}
+            inputMode="numeric"
+            onChange={(event) => {
+              const next = Number.parseInt(event.target.value, 10);
+              setDailyMinutes(Number.isFinite(next) && next > 0 ? next : 1);
+            }}
+            className="mt-1 h-8 border-none bg-transparent p-0 font-mono text-lg font-bold text-white focus-visible:ring-0"
+            aria-label="Daily watch minutes"
+          />
+        </label>
+        <div className="rounded-md border border-border-dark bg-background-dark/82 p-3 shadow-inset">
+          <div className="text-[11px] font-semibold text-warm-muted">Days</div>
+          <div className="mt-1 font-mono text-lg font-bold text-white">{planDays}</div>
+        </div>
+        <div className="rounded-md border border-border-dark bg-background-dark/82 p-3 shadow-inset">
+          <div className="text-[11px] font-semibold text-warm-muted">Videos/day</div>
+          <div className="mt-1 font-mono text-lg font-bold text-white">{videosPerDay}</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <div className="mr-1 min-w-0 text-sm">
+          <div className="text-[11px] font-semibold text-warm-muted">Finish by</div>
+          <div className="font-mono font-bold text-gray-100">{finishDate}</div>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={copySummary}>
+          <Copy className="size-3.5" aria-hidden="true" />
+          Copy
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={downloadCsv}>
+          <Download className="size-3.5" aria-hidden="true" />
+          CSV
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -448,9 +673,9 @@ export default function PlaylistsTable({
                   <TooltipContent>
                     <div className="flex flex-col gap-1 text-center">
                       <span>Drag to reorder</span>
-                      <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400">
-                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">↑</kbd>
-                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">↓</kbd>
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-warm-muted">
+                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">Up</kbd>
+                        <kbd className="rounded border border-border-dark bg-surface-raised px-1 py-0.5 font-mono text-[9px]">Down</kbd>
                         <span>to move</span>
                       </div>
                     </div>
@@ -655,7 +880,7 @@ export default function PlaylistsTable({
           speedColumn.id === "speed_custom"
             ? () => (
               <div className="flex flex-col items-center justify-center gap-2">
-                <div className="text-[10px] font-bold uppercase text-gray-300">{speedColumn.label}</div>
+                <div className="text-[10px] font-bold text-gray-300">{speedColumn.label}</div>
                 <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} compact />
               </div>
             )
@@ -792,18 +1017,25 @@ export default function PlaylistsTable({
   const totals = React.useMemo(() => {
     let totalSelectedDuration = 0;
     let totalSelectedVideos = 0;
+    let totalViews = 0;
+    let successfulRows = 0;
 
     for (const row of rows) {
       if (row.status !== "success") continue;
       const metrics = metricsById.get(row.id);
       if (!metrics) continue;
+      successfulRows += 1;
       totalSelectedDuration += metrics.selectedDurationSec;
       totalSelectedVideos += metrics.range.selectedCount;
+      totalViews += row.data?.totalVideoViewsSum ?? 0;
     }
 
     const avgLength = totalSelectedVideos > 0 ? totalSelectedDuration / totalSelectedVideos : 0;
     return {
       totalSelectedDuration,
+      totalSelectedVideos,
+      totalViews,
+      successfulRows,
       avgLength
     };
   }, [metricsById, rows]);
@@ -832,7 +1064,15 @@ export default function PlaylistsTable({
 
   return (
     <TooltipProvider>
-      {isMobileLayout ? (
+      <div className="space-y-3">
+        <WatchPlanPanel
+          rows={rows}
+          metricsById={metricsById}
+          totals={totals}
+          customSpeed={customSpeed}
+        />
+
+        {isMobileLayout ? (
         <div className="space-y-3">
           {table.getRowModel().rows.map((row) => (
             <MobilePlaylistCard
@@ -909,11 +1149,13 @@ export default function PlaylistsTable({
                 <TableRow
                   key={row.id}
                   draggable={draggable}
+                  tabIndex={0}
+                  aria-selected={isSelected}
                   onClick={() => setSelectedRowId(row.original.id)}
                   onKeyDown={(event) => handleRowKeyDown(event, row.original.id)}
                   className={`cursor-pointer transition-colors ${
                     isSelected
-                      ? "bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
+                      ? "bg-primary/15 focus:outline-none focus:ring-2 focus:ring-primary ring-inset"
                       : "focus:outline-none focus:ring-2 focus:ring-primary/30 ring-inset"
                   }`}
                   title="Click to select row, use arrow keys to move up/down"
@@ -954,8 +1196,8 @@ export default function PlaylistsTable({
             <TableFooter>
               <TableRow role="row">
                 <TableCell role="cell" />
-                <TableCell role="cell" className="text-sm font-medium uppercase text-gray-300">
-                  Total
+                <TableCell role="cell" className="text-sm font-medium text-gray-300">
+                  Total watch time
                 </TableCell>
                 <TableCell role="cell" />
                 <TableCell role="cell" className="font-mono text-sm text-gray-300">
@@ -980,6 +1222,7 @@ export default function PlaylistsTable({
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}
+      </div>
       </div>
     </TooltipProvider>
   );

@@ -1,7 +1,7 @@
 {
   "name": "yttime",
   "short_name": "yttime",
-  "description": "Calculate YouTube playlist duration and compare watch time across playback speeds.",
+  "description": "Calculate YouTube playlist length, compare playback speeds, plan daily watch time, and export playlist summaries.",
   "start_url": "/",
   "scope": "/",
   "id": "/",

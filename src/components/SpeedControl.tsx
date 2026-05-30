@@ -34,12 +34,12 @@ function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
         className={
           compact
             ? "flex items-center gap-1"
-            : "flex items-center gap-2 rounded-md border border-border-dark bg-surface-raised/80 px-2 py-1 shadow-inset"
+            : "flex items-center rounded-md border border-border-dark bg-background-dark/70 px-2 py-1 shadow-inset"
         }
       >
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 rounded border border-border-dark bg-surface-darker px-2 py-1">
+            <div className="flex items-center gap-1 rounded border border-border-dark bg-surface-darker/90 px-2 py-1">
               <Input
                 type="number"
                 step={0.05}
@@ -68,14 +68,6 @@ function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
           <TooltipContent>Playback speed (0.1x - 3.0x)</TooltipContent>
         </Tooltip>
 
-        {!compact && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="hidden cursor-help text-[10px] uppercase text-gray-500 lg:inline">0.1x-3.0x</span>
-            </TooltipTrigger>
-            <TooltipContent>Valid speed range</TooltipContent>
-          </Tooltip>
-        )}
       </div>
     </TooltipProvider>
   );

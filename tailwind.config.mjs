@@ -5,15 +5,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#e24c43",
-        "primary-dark": "#bf3933",
-        "background-dark": "#11100f",
-        "surface-dark": "#171615",
-        "surface-darker": "#0d0c0b",
-        "surface-raised": "#211f1d",
-        "border-dark": "#37312d",
-        "border-contrast": "#5f5149",
-        "warm-muted": "#a79c91",
+        primary: "#ff5548",
+        "primary-dark": "#d83f36",
+        accent: "#69c6bc",
+        "accent-soft": "#153335",
+        "background-dark": "#0b0f11",
+        "surface-dark": "#12191c",
+        "surface-darker": "#080c0e",
+        "surface-raised": "#1a2428",
+        "border-dark": "#273338",
+        "border-contrast": "#4a5a60",
+        "warm-muted": "#9eafb5",
       },
       fontFamily: {
         sans: [
@@ -39,9 +41,9 @@ export default {
         ],
       },
       boxShadow: {
-        soft: "0 16px 40px rgba(4, 3, 2, 0.36)",
-        lift: "0 24px 80px rgba(8, 5, 3, 0.44)",
-        inset: "inset 0 1px 0 rgba(255, 244, 232, 0.05)",
+        soft: "0 16px 40px rgba(0, 8, 12, 0.34)",
+        lift: "0 24px 80px rgba(0, 8, 12, 0.48)",
+        inset: "inset 0 1px 0 rgba(230, 248, 250, 0.06)",
       },
       keyframes: {
         "accordion-down": {

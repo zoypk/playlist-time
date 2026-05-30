@@ -65,7 +65,7 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
           type="button"
           variant="outline"
           className={cn(
-            "h-auto rounded-md border-primary/35 bg-surface-raised px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-surface-dark hover:text-white",
+            "h-auto rounded-md border-primary/35 bg-background-dark/75 px-3 py-1 font-mono text-xs text-gray-300 hover:border-primary hover:bg-surface-dark hover:text-white",
             triggerClassName
           )}
           disabled={disabled}
@@ -83,7 +83,7 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
         <PopoverContent align="start" sideOffset={8} className="w-64">
           <TooltipProvider>
             <div className="mb-2 flex items-center justify-between border-b border-border-dark pb-2">
-              <span className="text-[10px] font-semibold uppercase text-warm-muted">Edit range</span>
+              <span className="text-[10px] font-semibold text-warm-muted">Edit range</span>
               <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Close range editor" onClick={() => onOpenChange(false)}>
                 <X className="size-3.5" aria-hidden="true" />
               </Button>
@@ -91,69 +91,69 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
 
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label htmlFor="range-start" className="text-[10px] uppercase text-gray-500">
+                <label htmlFor="range-start" className="text-[10px] text-warm-muted">
                   Start
                 </label>
-              <Input
+                <Input
                   id="range-start"
-                type="number"
-                min={1}
-                max={Math.max(total, 1)}
-                value={start}
-                inputMode="numeric"
-                onChange={(event) => setStart(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    applyCurrent();
-                  }
-                }}
-                className="h-8 px-2 py-1 text-xs"
-                title="Press Enter to apply"
-              />
+                  type="number"
+                  min={1}
+                  max={Math.max(total, 1)}
+                  value={start}
+                  inputMode="numeric"
+                  onChange={(event) => setStart(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      applyCurrent();
+                    }
+                  }}
+                  className="h-8 px-2 py-1 text-xs"
+                  title="Press Enter to apply"
+                />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="range-end" className="text-[10px] uppercase text-gray-500">
+                <label htmlFor="range-end" className="text-[10px] text-warm-muted">
                   End
                 </label>
-              <Input
+                <Input
                   id="range-end"
+                  type="number"
+                  min={1}
+                  max={Math.max(total, 1)}
+                  value={end}
+                  inputMode="numeric"
+                  onChange={(event) => setEnd(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      applyCurrent();
+                    }
+                  }}
+                  className="h-8 px-2 py-1 text-xs"
+                  title="Press Enter to apply"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center gap-1">
+              <Input
                 type="number"
                 min={1}
                 max={Math.max(total, 1)}
-                value={end}
+                value={presetCount}
                 inputMode="numeric"
-                onChange={(event) => setEnd(event.target.value)}
+                onChange={(event) => setPresetCount(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
                     applyCurrent();
                   }
                 }}
-                className="h-8 px-2 py-1 text-xs"
+                className="h-8 w-14 px-2 py-1 text-xs"
+                aria-label="Preset range count"
                 title="Press Enter to apply"
               />
-              </div>
-          </div>
-
-          <div className="mt-3 flex items-center gap-1">
-            <Input
-              type="number"
-              min={1}
-              max={Math.max(total, 1)}
-              value={presetCount}
-              inputMode="numeric"
-              onChange={(event) => setPresetCount(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyCurrent();
-                }
-              }}
-              className="h-8 w-14 px-2 py-1 text-xs"
-              aria-label="Preset range count"
-              title="Press Enter to apply"
-            />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-[10px]" onClick={() => applyFirstLast("first")}>
@@ -178,9 +178,9 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
                 </TooltipTrigger>
                 <TooltipContent>Include all videos</TooltipContent>
               </Tooltip>
-          </div>
+            </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -201,14 +201,11 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
                 <TooltipTrigger asChild>
                   <Button type="button" size="sm" onClick={applyCurrent} className="gap-2">
                     Apply
-                    <kbd className="hidden rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-semibold md:inline">
-                      ↵
-                    </kbd>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Save and apply this range</TooltipContent>
               </Tooltip>
-          </div>
+            </div>
           </TooltipProvider>
         </PopoverContent>
       )}

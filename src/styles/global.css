@@ -16,7 +16,7 @@ body {
 
 html {
   scroll-behavior: smooth;
-  background: #11100f;
+  background: #0b0f11;
 }
 
 body {
@@ -24,9 +24,9 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    linear-gradient(135deg, rgba(226, 76, 67, 0.1) 0%, transparent 32%),
-    linear-gradient(180deg, #151311 0%, #11100f 48%, #0d0c0b 100%);
-  color: #f5efe8;
+    linear-gradient(90deg, rgba(105, 198, 188, 0.08), transparent 22%, transparent 78%, rgba(255, 85, 72, 0.08)),
+    linear-gradient(180deg, #12191c 0%, #0b0f11 46%, #080c0e 100%);
+  color: #edf7f8;
   font-family:
     "Outfit",
     ui-sans-serif,
@@ -44,9 +44,20 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background-image:
-    repeating-linear-gradient(90deg, rgba(255, 244, 232, 0.035) 0 1px, transparent 1px 88px),
-    repeating-linear-gradient(0deg, rgba(255, 244, 232, 0.026) 0 1px, transparent 1px 88px);
+    repeating-linear-gradient(90deg, rgba(221, 245, 247, 0.035) 0 1px, transparent 1px 96px),
+    repeating-linear-gradient(0deg, rgba(221, 245, 247, 0.025) 0 1px, transparent 1px 96px);
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 78%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  mix-blend-mode: screen;
 }
 
 body > * {
@@ -55,8 +66,8 @@ body > * {
 }
 
 ::selection {
-  background: rgba(226, 76, 67, 0.38);
-  color: #fff8f0;
+  background: rgba(255, 85, 72, 0.42);
+  color: #ffffff;
 }
 
 .skip-link {
@@ -65,10 +76,10 @@ body > * {
   top: 1rem;
   z-index: 100;
   transform: translateY(-160%);
-  border: 1px solid #5f5149;
+  border: 1px solid #4a5a60;
   border-radius: 0.5rem;
-  background: #211f1d;
-  color: #fff8f0;
+  background: #12191c;
+  color: #edf7f8;
   padding: 0.625rem 0.875rem;
   font-size: 0.875rem;
   font-weight: 700;
@@ -77,18 +88,27 @@ body > * {
 
 .skip-link:focus {
   transform: translateY(0);
-  outline: 2px solid #e24c43;
+  outline: 2px solid #ff5548;
   outline-offset: 2px;
 }
 
 .site-frame {
-  width: min(calc(100% - 2rem), 1480px);
+  width: min(100vw, 1400px);
+  max-width: 1400px;
   margin-inline: auto;
+  padding-inline: 1rem;
 }
 
 @media (min-width: 768px) {
   .site-frame {
-    width: min(calc(100% - 3rem), 1480px);
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-frame,
+  .site-frame * {
+    min-width: 0;
   }
 }
 
@@ -105,16 +125,16 @@ textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #11100f;
+  background: #0b0f11;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a413b;
+  background: #334148;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6a5b52;
+  background: #4a5a60;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -115,7 +115,7 @@ function AppInner() {
   const [rows, setRows] = React.useState<PlaylistRow[]>([]);
   const [defaultRangeStart, setDefaultRangeStart] = React.useState<number | null>(null);
   const [defaultRangeEnd, setDefaultRangeEnd] = React.useState<number | null>(null);
-  const [customSpeed, setCustomSpeed] = React.useState(2);
+  const [customSpeed, setCustomSpeed] = React.useState(2.25);
   const [sorting, setSorting] = React.useState<SortingState>(DEFAULT_SORTING);
 
   const visibleOrderRef = React.useRef<string[]>([]);
@@ -293,7 +293,7 @@ function AppInner() {
       setCustomSpeed(
         typeof parsed.customSpeed === "number" && parsed.customSpeed >= 0.1 && parsed.customSpeed <= 3
           ? parsed.customSpeed
-          : 2
+          : 2.25
       );
 
       if (!Array.isArray(parsed.playlists) || !parsed.playlists.length) {
@@ -444,8 +444,17 @@ function AppInner() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden shadow-lift">
-        <CardHeader>
+      <Card className="overflow-hidden border-border-contrast/70 bg-surface-dark/90 shadow-lift">
+        <CardHeader className="bg-[linear-gradient(180deg,rgba(26,36,40,0.94),rgba(8,12,14,0.92))] p-4 md:p-5">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Playlist input</p>
+              <p className="mt-1 text-xs text-warm-muted">Links, playlist IDs, or mixed batches.</p>
+            </div>
+            <span className="rounded-md border border-accent/25 bg-accent-soft/60 px-2.5 py-1 font-mono text-[11px] font-semibold text-accent">
+              Session only
+            </span>
+          </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="playlist-input">
@@ -463,8 +472,8 @@ function AppInner() {
                     }
                   }
                 }}
-                placeholder="Paste YouTube playlist URLs or IDs (newline, comma, or space separated)..."
-                className="h-24 resize-none font-mono leading-relaxed"
+                placeholder="Paste YouTube playlist URLs or IDs..."
+                className="h-28 resize-none border-border-contrast/60 bg-background-dark/80 font-mono leading-relaxed"
                 aria-describedby="playlist-input-hint"
               />
               <p id="playlist-input-hint" className="sr-only">
@@ -472,7 +481,7 @@ function AppInner() {
               </p>
             </div>
 
-            <div className="w-full rounded-lg border border-border-dark bg-surface-raised/65 p-3 shadow-inset lg:w-100">
+            <div className="w-full rounded-lg border border-border-dark bg-background-dark/70 p-3 shadow-inset lg:w-[25rem]">
               <div className="mb-3">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -489,14 +498,14 @@ function AppInner() {
                         placeholder="Start"
                         value={defaultRangeStart ?? ""}
                         onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
-                        className="h-8 w-20 px-2 py-1 text-center text-xs"
+                        className="h-9 w-24 px-2 py-1 text-center text-xs"
                         inputMode="numeric"
                         aria-label="Default range start"
                       />
                     </TooltipTrigger>
                     <TooltipContent>First video index (1-based)</TooltipContent>
                   </Tooltip>
-                  <span className="text-gray-400">-</span>
+                  <span className="text-warm-muted">-</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Input
@@ -505,7 +514,7 @@ function AppInner() {
                         placeholder="End"
                         value={defaultRangeEnd ?? ""}
                         onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
-                        className="h-8 w-20 px-2 py-1 text-center text-xs"
+                        className="h-9 w-24 px-2 py-1 text-center text-xs"
                         inputMode="numeric"
                         aria-label="Default range end"
                       />
@@ -521,7 +530,7 @@ function AppInner() {
                     type="button"
                     onClick={analyzeInput}
                     size="lg"
-                    className="w-full gap-2 text-sm font-bold"
+                    className="h-12 w-full gap-2 text-sm font-bold"
                     disabled={!inputText.trim()}
                   >
                     <WandSparkles className="size-4" aria-hidden="true" />
@@ -536,11 +545,11 @@ function AppInner() {
       </Card>
 
       {rows.length === 0 && (
-        <section className="grid gap-4 rounded-lg border border-dashed border-border-contrast bg-surface-dark/70 p-6 text-left shadow-soft md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <section className="grid gap-4 rounded-lg border border-border-dark bg-[linear-gradient(135deg,rgba(26,36,40,0.86),rgba(8,12,14,0.82))] p-5 text-left shadow-soft md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div>
-            <p className="text-lg font-semibold text-gray-100">No playlists loaded</p>
+            <p className="text-base font-semibold text-gray-100">Ready for playlist data</p>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-warm-muted">
-              Add playlist links above or load sample rows to inspect the comparison table.
+              Use sample rows to inspect the comparison table before adding live YouTube playlists.
             </p>
           </div>
           <Tooltip>
@@ -548,7 +557,7 @@ function AppInner() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-fit text-xs font-semibold"
+                className="h-10 w-fit border-accent/35 text-xs font-semibold text-accent hover:border-accent hover:bg-accent-soft/70 hover:text-white"
                 onClick={() => setRows(getExampleRows())}
               >
                 <WandSparkles className="mr-2 size-3.5" />

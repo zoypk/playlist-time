@@ -1,34 +1,50 @@
 # playlist-time
 
-YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, and narrow the calculation to a video range.
+YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
-Built with Astro, React, TypeScript, Bun, and Cloudflare Pages Functions.
-
 ![yttime calculator with sample playlist rows](docs/yttime-sample-rows.png)
 
-## Why This Exists
+## Problem
 
 YouTube shows playlist contents, but not the real time commitment for "videos 12-48 at 1.5x." yttime answers that question quickly while keeping YouTube API keys server-side.
 
-## Features
+## Target User
+
+yttime is for learners, course planners, students, creators, and anyone managing long YouTube playlists who needs to answer practical planning questions before they start watching:
+
+- How long will this playlist take at my preferred speed?
+- What happens if I only watch a specific range of videos?
+- How many videos or minutes do I need per day to finish on time?
+- Which playlist in a queue is the biggest time commitment?
+
+## Core Features
 
 - Analyze one or many playlists from pasted URLs or raw playlist IDs.
-- Compare totals at 1x, 1.25x, 1.5x, 1.75x, or a custom speed.
+- Compare totals at 1x, 1.25x, 1.5x, 1.75x, 2x, or a custom speed.
 - Apply a default video range, then adjust individual rows when needed.
 - Sort playlist totals with thumbnails, channel names, views, publish dates, and durations.
+- Estimate a daily finish date and videos-per-day target from the selected watch time.
+- Copy a readable summary or download CSV results for planning and sharing.
 - Load deterministic sample rows without calling the YouTube API.
 
-## Implementation Notes
+## Tech Stack
+
+- Astro 5 for the static site shell and build pipeline.
+- React 19 and TypeScript for the interactive calculator.
+- TanStack Query and TanStack Table for API state and sortable playlist results.
+- Tailwind CSS, Radix UI primitives, and lucide-react for the interface.
+- Bun for package management, local scripts, and unit tests.
+- Cloudflare Pages Functions and Wrangler for the serverless API and deployment.
+- YouTube Data API v3 for playlist metadata and video durations.
+
+## Architecture
 
 - Astro serves the static shell; a React/TypeScript island owns the calculator state.
 - Cloudflare Pages Functions proxy the YouTube Data API so `YOUTUBE_KEYS` never reaches the browser.
 - The batch API de-duplicates playlist IDs, bounds concurrency, rotates API keys on quota/rate failures, and returns per-playlist errors.
 - Successful API responses use a short Cloudflare edge cache; the browser keeps only session-level UI state.
-- CI runs install, Astro/TypeScript checks, unit tests, and production build on pushes and pull requests.
-
-## Architecture
 
 ```text
 Browser
@@ -37,7 +53,22 @@ Browser
   -> YouTube Data API v3
 ```
 
-## Run Locally
+Key files:
+
+- `src/pages/index.astro` mounts the page shell and React app.
+- `src/components/App.tsx` coordinates playlist input, speed/range controls, planning, and export flows.
+- `src/components/PlaylistsTable.tsx` renders single-playlist and multi-playlist result states.
+- `functions/api/playlist.ts` handles the single-playlist API route, YouTube calls, caching, and shared helpers.
+- `functions/api/playlists.ts` handles batch playlist analysis.
+- `src/shared/contracts.ts` keeps frontend/backend response shapes aligned.
+
+## Local Setup
+
+Prerequisites:
+
+- Bun
+- Wrangler, installed through the project dependencies
+- One or more YouTube Data API keys
 
 ```bash
 bun install
@@ -50,18 +81,31 @@ Set local function variables in `.dev.vars`:
 YOUTUBE_KEYS=your_youtube_api_key_here,your_fallback_youtube_api_key_here
 ```
 
-Start the frontend and local Pages Functions API:
+Run the Astro frontend:
 
 ```bash
 bun run dev
+```
+
+In a second terminal, run the local Pages Functions API:
+
+```bash
 bun run worker:dev
 ```
 
-Astro proxies `/api/*` to `http://127.0.0.1:8788`, so both processes are needed for real API calls.
+Astro proxies `/api/*` to `http://127.0.0.1:8788`, so both processes are needed for real YouTube API calls. The sample data route at `/?demo=1` can be used without API keys.
 
-## Verification
+## Environment Variables
 
-These checks pass locally:
+| Name | Required | Where | Purpose |
+| --- | --- | --- | --- |
+| `YOUTUBE_KEYS` | Yes for real API calls | `.dev.vars` locally; Cloudflare Pages environment variables in production | Comma-separated YouTube Data API keys. Multiple keys allow fallback when one key is quota-limited. |
+
+Do not commit `.dev.vars`. If a real key is ever committed, revoke or rotate it before publishing.
+
+## Tests
+
+Run the local checks:
 
 ```bash
 bun run check
@@ -69,7 +113,9 @@ bun run test
 bun run build
 ```
 
-Current tests cover playlist input parsing, range normalization, API key parsing, cache-key generation, and bounded concurrency helpers. There is no browser end-to-end suite yet; that would be the next useful test layer.
+Current tests cover playlist input parsing, range normalization, API key parsing, cache-key generation, and bounded concurrency helpers. `bun run check` validates Astro and TypeScript, and `bun run build` verifies the production bundle.
+
+There is no browser end-to-end suite yet; that would be the next useful test layer.
 
 ## API
 
@@ -82,7 +128,9 @@ The single-playlist route returns playlist metadata plus ordered video durations
 
 ## Deployment
 
-Cloudflare Pages configuration:
+The app is deployed on Cloudflare Pages.
+
+Build settings:
 
 - Project name: `playlist-time`
 - Build command: `bun run build`
@@ -90,7 +138,20 @@ Cloudflare Pages configuration:
 - Functions directory: `functions`
 - Production variable: `YOUTUBE_KEYS`
 
-Keep real keys in `.dev.vars` locally and Cloudflare Pages environment variables in production. Do not commit `.dev.vars`; if a real key is ever committed, revoke or rotate it before publishing.
+Manual deployment command:
+
+```bash
+bun run build
+bun run deploy:pages
+```
+
+Production secrets should be configured in Cloudflare Pages, not committed to the repository.
+
+## Screenshots and Demo
+
+- Live app: [playlist-time.pages.dev](https://playlist-time.pages.dev)
+- Deterministic sample: [playlist-time.pages.dev/?demo=1](https://playlist-time.pages.dev/?demo=1)
+- Screenshot: [docs/yttime-sample-rows.png](docs/yttime-sample-rows.png)
 
 ## Limitations
 
@@ -98,6 +159,6 @@ Keep real keys in `.dev.vars` locally and Cloudflare Pages environment variables
 - Private, deleted, unavailable, or region-blocked videos can affect totals.
 - The rate limiter is lightweight and per-runtime; it is not a durable abuse-prevention system.
 
-## Ownership
+## My Role
 
-Personal project. I built the product scope, UI, serverless API, YouTube integration, caching behavior, deployment setup, tests, and CI.
+Personal project. I built the product scope, UI, serverless API, YouTube integration, caching behavior, deployment setup, and tests.

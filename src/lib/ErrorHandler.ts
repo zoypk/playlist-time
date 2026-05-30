@@ -33,30 +33,30 @@ const ERROR_BADGE_LABELS: Record<ErrorCategory, string> = {
  * @returns {ErrorCategory} Classified error category
  *
  * @example
- * classifyRowError(400, "Invalid playlist ID") // → "invalid"
- * classifyRowError(404, "Not found") // → "unavailable"
- * classifyRowError(429, "Too many requests") // → "quota"
- * classifyRowError(500, "Internal server error") // → "network"
+ * classifyRowError(400, "Invalid playlist ID") // -> "invalid"
+ * classifyRowError(404, "Not found") // -> "unavailable"
+ * classifyRowError(429, "Too many requests") // -> "quota"
+ * classifyRowError(500, "Internal server error") // -> "network"
  */
 export function classifyRowError(status: number, message: string): ErrorCategory {
   const normalized = message.toLowerCase();
 
-  // 400 Bad Request → usually invalid input
+  // 400 Bad Request usually means invalid input.
   if (status === 400 || normalized.includes("invalid")) {
     return "invalid";
   }
 
-  // 404 Not Found or mentions of privacy/deletion → unavailable
+  // 404 Not Found or mentions of privacy/deletion means unavailable.
   if (status === 404 || normalized.includes("notfound") || normalized.includes("private")) {
     return "unavailable";
   }
 
-  // 429 Too Many Requests or 403 Forbidden → rate limiting/quota
+  // 429 Too Many Requests or 403 Forbidden means rate limiting/quota.
   if (status === 429 || status === 403 || normalized.includes("quota") || normalized.includes("limit")) {
     return "quota";
   }
 
-  // 5xx or network errors → network issues
+  // 5xx or network errors means network issues.
   if (status >= 500 || normalized.includes("network") || normalized.includes("timeout")) {
     return "network";
   }

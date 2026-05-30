@@ -35,7 +35,7 @@ export const QUERY_CACHE_TIME_MS = 1000 * 60 * 60;
  * Selected speeds chosen for common viewing scenarios (commute, background, study).
  * Users can also input custom speeds between 0.1 and 3.0x.
  */
-export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75] as const;
+export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
 
 /**
  * Column definitions for playback speed metrics in the playlist table.
