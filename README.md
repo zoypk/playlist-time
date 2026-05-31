@@ -1,4 +1,4 @@
-# playlist-time 
+# Playlist Time 
 
 YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
