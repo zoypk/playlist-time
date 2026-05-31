@@ -1,4 +1,4 @@
-# playlist-time
+# yttime
 
 YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
@@ -6,11 +6,9 @@ YouTube playlist watch-time calculator for planning courses, study queues, and l
 
 ![yttime first viewport with demo playlist results](docs/yttime-first-viewport.png)
 
-## Problem
+## Problem and User
 
 YouTube shows playlist contents, but not the real time commitment for "videos 12-48 at 1.5x." yttime answers that question quickly while keeping YouTube API keys server-side.
-
-## Target User
 
 yttime is for learners, course planners, students, creators, and anyone managing long YouTube playlists who needs to answer practical planning questions before they start watching:
 
@@ -39,7 +37,7 @@ yttime is for learners, course planners, students, creators, and anyone managing
 - Cloudflare Pages Functions and Wrangler for the serverless API and deployment.
 - YouTube Data API v3 for playlist metadata and video durations.
 
-## Architecture
+## Architecture Overview
 
 - Astro serves the static shell; a React/TypeScript island owns the calculator state.
 - Cloudflare Pages Functions proxy the YouTube Data API so `YOUTUBE_KEYS` never reaches the browser.
@@ -78,7 +76,7 @@ cp .dev.vars.example .dev.vars
 Set local function variables in `.dev.vars`:
 
 ```env
-YOUTUBE_KEYS=your_youtube_api_key_here,your_fallback_youtube_api_key_here
+YOUTUBE_KEYS=YOUR_YOUTUBE_DATA_API_KEY,YOUR_OPTIONAL_FALLBACK_YOUTUBE_DATA_API_KEY
 ```
 
 Run the Astro frontend:
@@ -103,7 +101,7 @@ Astro proxies `/api/*` to `http://127.0.0.1:8788`, so both processes are needed 
 
 Do not commit `.dev.vars`. If a real key is ever committed, revoke or rotate it before publishing.
 
-## Tests
+## Verification Status
 
 Run the local checks:
 
@@ -117,7 +115,7 @@ Current tests cover playlist input parsing, range normalization, API key parsing
 
 There is no browser end-to-end suite yet; that would be the next useful test layer.
 
-## API
+## API Endpoints
 
 - `GET /api/playlist?list=PLAYLIST_ID`
 - `GET /api/playlist?list=PLAYLIST_ID&refresh=1`
@@ -138,7 +136,7 @@ Build settings:
 - Functions directory: `functions`
 - Production variable: `YOUTUBE_KEYS`
 
-Cloudflare Pages runs production builds on deploy; local verification uses `bun run check`, `bun run test`, and `bun run build`.
+Cloudflare Pages runs production builds on deploy. This is a Pages project with Pages Functions, so deployments should use the Pages flow instead of `wrangler deploy`.
 
 Manual deployment command:
 
