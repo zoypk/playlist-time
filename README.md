@@ -101,6 +101,8 @@ Astro proxies `/api/*` to `http://127.0.0.1:8788`, so both processes are needed 
 
 Do not commit `.dev.vars`. If a real key is ever committed, revoke or rotate it before publishing.
 
+For reporting security issues or accidental key exposure, see [SECURITY.md](SECURITY.md).
+
 ## Verification Status
 
 Run the local checks:
