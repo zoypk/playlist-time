@@ -461,7 +461,7 @@ function buildCopySummary(
 ) {
   const adjustedTotal = totals.totalSelectedDuration / customSpeed;
   const lines = [
-    "yttime playlist watch-time summary",
+    "playlist-time watch-time summary",
     `Playlists: ${totals.successfulRows}`,
     `Videos selected: ${totals.totalSelectedVideos}`,
     `Views: ${formatViews(totals.totalViews)}`,
@@ -550,7 +550,7 @@ function WatchPlanPanel({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "yttime-playlist-summary.csv";
+    anchor.download = "playlist-time-summary.csv";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

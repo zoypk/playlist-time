@@ -29,9 +29,9 @@ export function ContentAccordion({ faq, howItWorks, features, comparison = [], w
         <AccordionContent className="border-t border-border-dark bg-background-dark/35">
           <div className="grid gap-8 p-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <section className="max-w-prose">
-              <h2 className="text-sm font-semibold text-primary">What is yttime?</h2>
+              <h2 className="text-sm font-semibold text-primary">What is playlist-time?</h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                yttime is a free <strong>YouTube Playlist Length Calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed: 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
+                playlist-time is a free <strong>YouTube Playlist Length Calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed: 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-gray-300">
                 Unlike manually scrolling through every video to add up durations, this <strong>YouTube playlist length calculator</strong> does the math for you in seconds. It also handles partial playlists: set a start and end range to calculate the duration of only the videos you actually plan to watch.

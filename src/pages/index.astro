@@ -5,21 +5,21 @@ import "../styles/global.css";
 
 const site = "https://playlist-time.pages.dev";
 const canonical = new URL("/", site).toString();
-const socialImage = new URL("/og.svg", site).toString();
-const socialImageAlt = "yttime YouTube playlist length calculator with speed, range, planner, and export tools";
+const socialImage = new URL("/og.png", site).toString();
+const socialImageAlt = "playlist-time YouTube playlist length calculator with speed, range, planner, and export tools";
 
-const title = "YouTube Playlist Length Calculator | yttime";
+const title = "YouTube Playlist Length Calculator | playlist-time";
 const description =
   "Calculate YouTube playlist length instantly. Compare multiple playlists, ranges, playback speeds, daily watch plans, and CSV summaries. Free, no login.";
 
 const faq = [
   {
     q: "How do I calculate YouTube playlist duration?",
-    a: "Paste one or more playlist URLs into the input field and click Analyze. yttime fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
+    a: "Paste one or more playlist URLs into the input field and click Analyze. playlist-time fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
   },
   {
     q: "How long is a YouTube playlist at 1.5x speed?",
-    a: "yttime divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, 2x, or set any custom speed."
+    a: "playlist-time divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, 2x, or set any custom speed."
   },
   {
     q: "Can I compare multiple playlists at once?",
@@ -85,14 +85,14 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "WebSite",
-      name: "yttime",
+      name: "playlist-time",
       url: canonical,
       inLanguage: "en",
       description
     },
     {
       "@type": "WebApplication",
-      name: "yttime",
+      name: "playlist-time",
       url: canonical,
       applicationCategory: "UtilityApplication",
       operatingSystem: "Any",
@@ -156,10 +156,11 @@ const jsonLd = {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:site_name" content="yttime" />
+    <meta property="og:site_name" content="playlist-time" />
     <meta property="og:image" content={socialImage} />
+    <meta property="og:image:secure_url" content={socialImage} />
     <meta property="og:image:alt" content={socialImageAlt} />
-    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -179,7 +180,7 @@ const jsonLd = {
       class="sticky top-0 z-40 border-b border-border-dark/85 bg-background-dark/90 shadow-soft backdrop-blur"
     >
       <div class="site-frame flex items-center gap-3 py-3">
-        <a href="/" class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" aria-label="yttime home">
+        <a href="/" class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" aria-label="playlist-time home">
         <div class="flex size-8 items-center justify-center rounded-md bg-primary/15 text-primary ring-1 ring-primary/35">
           <svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true">
             <path
@@ -187,7 +188,7 @@ const jsonLd = {
             />
           </svg>
         </div>
-        <span class="text-xl font-bold text-white">yttime</span>
+        <span class="text-xl font-bold text-white">playlist-time</span>
         </a>
 
         <nav class="ml-auto hidden items-center gap-1 sm:flex" aria-label="Primary navigation">
@@ -204,7 +205,7 @@ const jsonLd = {
     <main class="site-frame flex flex-1 flex-col gap-5 py-5 md:py-6">
       <section class="grid gap-4 py-1 md:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] md:items-end">
         <div class="max-w-4xl">
-          <p class="text-sm font-semibold text-primary">yttime</p>
+          <p class="text-sm font-semibold text-primary">playlist-time</p>
           <h1 class="mt-2 max-w-4xl text-balance font-display text-3xl font-extrabold leading-tight text-white md:text-4xl">
             YouTube playlist length calculator
           </h1>

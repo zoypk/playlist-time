@@ -1,6 +1,6 @@
 # Security Policy
 
-yttime is a personal open-source portfolio project. It uses Cloudflare Pages Functions to keep YouTube Data API keys on the server side and out of browser code.
+playlist-time is a personal open-source portfolio project. It uses Cloudflare Pages Functions to keep YouTube Data API keys on the server side and out of browser code.
 
 ## Supported Version
 

@@ -4,13 +4,13 @@ YouTube playlist watch-time calculator for planning courses, study queues, and l
 
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
-![yttime first viewport with demo playlist results](docs/yttime-first-viewport.png)
+![playlist-time first viewport with demo playlist results](docs/playlist-time-first-viewport.png)
 
 ## Problem and User
 
-YouTube shows playlist contents, but not the real time commitment for "videos 12-48 at 1.5x." yttime answers that question quickly while keeping YouTube API keys server-side.
+YouTube shows playlist contents, but not the real time commitment for "videos 12-48 at 1.5x." playlist-time answers that question quickly while keeping YouTube API keys server-side.
 
-yttime is for learners, course planners, students, creators, and anyone managing long YouTube playlists who needs to answer practical planning questions before they start watching:
+playlist-time is for learners, course planners, students, creators, and anyone managing long YouTube playlists who needs to answer practical planning questions before they start watching:
 
 - How long will this playlist take at my preferred speed?
 - What happens if I only watch a specific range of videos?
@@ -153,9 +153,9 @@ Production secrets should be configured in Cloudflare Pages, not committed to th
 
 - Live app: [playlist-time.pages.dev](https://playlist-time.pages.dev)
 - Deterministic sample: [playlist-time.pages.dev/?demo=1](https://playlist-time.pages.dev/?demo=1)
-- Desktop screenshot: [docs/yttime-first-viewport.png](docs/yttime-first-viewport.png)
-- Mobile screenshot: [docs/yttime-mobile.png](docs/yttime-mobile.png)
-- Table detail screenshot: [docs/yttime-sample-rows.png](docs/yttime-sample-rows.png)
+- Desktop screenshot: [docs/playlist-time-first-viewport.png](docs/playlist-time-first-viewport.png)
+- Mobile screenshot: [docs/playlist-time-mobile.png](docs/playlist-time-mobile.png)
+- Table detail screenshot: [docs/playlist-time-sample-rows.png](docs/playlist-time-sample-rows.png)
 
 ## Limitations
 
