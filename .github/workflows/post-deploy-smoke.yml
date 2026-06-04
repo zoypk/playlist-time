@@ -1,28 +1,61 @@
 name: Post-deploy smoke
 
 on:
-  deployment_status:
+  check_run:
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Pages deployment URL to smoke test
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: post-deploy-smoke-${{ github.event.deployment.environment || github.event.deployment.ref || github.ref }}
+  group: post-deploy-smoke-${{ github.event.check_run.head_sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   demo-smoke:
     name: Demo route smoke
     if: >-
-      github.event.deployment_status.state == 'success' &&
-      (github.event.deployment_status.environment_url ||
-      github.event.deployment_status.target_url)
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.check_run.status == 'completed' &&
+        github.event.check_run.conclusion == 'success' &&
+        github.event.check_run.name == 'Cloudflare Pages' &&
+        github.event.check_run.app.name == 'Cloudflare Workers and Pages' &&
+        github.event.check_run.pull_requests[0] == null
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 8
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.check_run.head_sha || github.sha }}
+
+      - name: Resolve smoke target
+        env:
+          CHECK_RUN_SUMMARY: ${{ github.event.check_run.output.summary }}
+          WORKFLOW_DISPATCH_BASE_URL: ${{ inputs.base_url }}
+        run: |
+          if [ -n "$WORKFLOW_DISPATCH_BASE_URL" ]; then
+            smoke_base_url="$WORKFLOW_DISPATCH_BASE_URL"
+          else
+            smoke_base_url="$(printf '%s' "$CHECK_RUN_SUMMARY" | grep -Eo 'https://[A-Za-z0-9.-]+\.playlist-time\.pages\.dev' | head -n 1)"
+          fi
+
+          if [ -z "$smoke_base_url" ]; then
+            echo "Cloudflare Pages check run did not expose a playlist-time.pages.dev URL." >&2
+            exit 1
+          fi
+
+          echo "SMOKE_BASE_URL=${smoke_base_url%/}" >> "$GITHUB_ENV"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -58,8 +91,6 @@ jobs:
           bunx playwright install --with-deps chromium
 
       - name: Smoke test demo route
-        env:
-          SMOKE_BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
         run: |
           echo "::group::Run demo smoke"
           trap 'echo "::endgroup::"' EXIT
@@ -67,8 +98,6 @@ jobs:
 
       - name: Add job summary
         if: always()
-        env:
-          SMOKE_BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
         run: |
           echo "### Post-deploy smoke" >> "$GITHUB_STEP_SUMMARY"
           echo "- Target: ${SMOKE_BASE_URL}/?demo=1" >> "$GITHUB_STEP_SUMMARY"

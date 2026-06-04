@@ -2,6 +2,10 @@
 
 YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
+[![CI](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/zoypk/playlist-time/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/zoypk/playlist-time/actions/workflows/codeql.yml)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
+
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
 ![playlist-time first viewport with demo playlist results](docs/playlist-time-first-viewport.png)

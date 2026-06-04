@@ -19,7 +19,9 @@ export default defineConfig({
     timeout: 10_000
   },
   fullyParallel: true,
-  reporter: processEnv.CI ? [["github"], ["list"]] : "list",
+  reporter: processEnv.CI
+    ? [["github"], ["list"], ["html", { outputFolder: "playwright-report", open: "never" }]]
+    : "list",
   use: {
     baseURL,
     trace: "retain-on-failure",

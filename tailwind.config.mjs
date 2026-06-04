@@ -19,13 +19,13 @@ export default {
       },
       fontFamily: {
         sans: [
-          "Outfit",
+          "Geist",
           "ui-sans-serif",
           "system-ui",
           "sans-serif",
         ],
         display: [
-          "Outfit",
+          "Geist",
           "ui-sans-serif",
           "system-ui",
           "sans-serif",

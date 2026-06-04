@@ -636,11 +636,11 @@ function WatchPlanPanel({
           <div className="text-[11px] font-semibold text-warm-muted">Finish by</div>
           <div className="font-mono font-bold text-gray-100">{finishDate}</div>
         </div>
-        <Button type="button" variant="outline" className="h-10 gap-2" onClick={copySummary}>
+        <Button type="button" variant="outline" className="h-11 gap-2" onClick={copySummary}>
           <Copy className="size-3.5" aria-hidden="true" />
           Copy
         </Button>
-        <Button type="button" variant="outline" className="h-10 gap-2" onClick={downloadCsv}>
+        <Button type="button" variant="outline" className="h-11 gap-2" onClick={downloadCsv}>
           <Download className="size-3.5" aria-hidden="true" />
           CSV
         </Button>
@@ -1096,12 +1096,15 @@ export default function PlaylistsTable({
   return (
     <TooltipProvider>
       <div className="space-y-3">
-        <WatchPlanPanel
-          rows={rows}
-          metricsById={metricsById}
-          totals={totals}
-          customSpeed={customSpeed}
-        />
+        <div className="flex flex-wrap items-end justify-between gap-2 rounded-lg border border-border-dark bg-surface-dark/82 px-4 py-3 shadow-soft">
+          <div>
+            <h2 className="text-sm font-extrabold text-gray-100">Comparison results</h2>
+            <p className="mt-1 text-xs text-warm-muted">{statusMessage}</p>
+          </div>
+          <p className="font-mono text-xs font-semibold text-accent">
+            {totals.successfulRows} playlists · {totals.totalSelectedVideos} videos
+          </p>
+        </div>
 
         {isMobileLayout ? (
         <div className="space-y-3">
@@ -1157,7 +1160,7 @@ export default function PlaylistsTable({
                               header.column.getToggleSortingHandler()?.(event);
                             }
                           }}
-                          className="w-full cursor-pointer rounded px-1 text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          className="min-h-10 w-full cursor-pointer rounded px-2 py-2 text-left hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
                           aria-label={getColumnAriaLabel(header.column.id)}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -1251,9 +1254,16 @@ export default function PlaylistsTable({
         </Table>
       )}
 
-      <div className="sr-only" aria-live="polite">
-        {statusMessage}
-      </div>
+        <WatchPlanPanel
+          rows={rows}
+          metricsById={metricsById}
+          totals={totals}
+          customSpeed={customSpeed}
+        />
+
+        <div className="sr-only" aria-live="polite">
+          {statusMessage}
+        </div>
       </div>
     </TooltipProvider>
   );
