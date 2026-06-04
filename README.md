@@ -29,7 +29,7 @@ playlist-time is for learners, course planners, students, creators, and anyone m
 
 ## Tech Stack
 
-- Astro 5 for the static site shell and build pipeline.
+- Astro 6 for the static site shell and build pipeline.
 - React 19 and TypeScript for the interactive calculator.
 - TanStack Query and TanStack Table for API state and sortable playlist results.
 - Tailwind CSS, Radix UI primitives, and lucide-react for the interface.
@@ -166,3 +166,7 @@ Production secrets should be configured in Cloudflare Pages, not committed to th
 ## My Role
 
 Personal project. I built the product scope, UI, serverless API, YouTube integration, caching behavior, deployment setup, and tests.
+
+## License
+
+GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See [LICENSE](LICENSE).

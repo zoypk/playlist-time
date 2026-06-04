@@ -1,12 +1,14 @@
 {
   "name": "playlist-time",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "check": "astro check",
     "test": "bun test",
+    "smoke:demo": "playwright test --config=playwright.smoke.config.ts",
     "preview": "astro preview",
     "astro": "astro",
     "worker:dev": "wrangler pages dev ./public --compatibility-date=2025-01-01",
@@ -35,6 +37,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.15",
@@ -46,6 +49,6 @@
     "smol-toml": "^1.6.1",
     "fast-uri": "^3.1.2",
     "yaml": "^2.9.0",
-    "picomatch": "2.3.2"
+    "picomatch": "4.0.4"
   }
 }

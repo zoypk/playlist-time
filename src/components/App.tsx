@@ -27,6 +27,9 @@ import {
   isValidPlaylistId,
   classifyRowError,
   normalizeRangeForTotal,
+  readSessionStorageItem,
+  shouldSubmitPlaylistInputKey,
+  writeSessionStorageJson,
 } from "./utils";
 import {
   STORAGE_KEY,
@@ -44,27 +47,38 @@ const queryClient = new QueryClient({
   }
 });
 
-type PlaylistCacheMap = Record<string, { data: PlaylistApiDto; fetchedAt: number }>;
+/** Client-side cache entry for one playlist DTO. */
+type PlaylistCacheEntry = {
+  data: PlaylistApiDto;
+  fetchedAt: number;
+};
 
-// Simple cache helpers
+/** Session-scoped cache keyed by YouTube playlist id. */
+type PlaylistCacheMap = Record<string, PlaylistCacheEntry>;
+
+type FetchPlaylistsBatchOptions = {
+  refresh?: boolean;
+};
+
+/** Reads the session-scoped playlist cache, returning an empty map on invalid data. */
 function readPlaylistCache(): PlaylistCacheMap {
+  const stored = readSessionStorageItem(PLAYLIST_CACHE_KEY);
+  if (!stored) return {};
+
   try {
-    const stored = sessionStorage.getItem(PLAYLIST_CACHE_KEY);
-    return stored ? JSON.parse(stored) : {};
+    return JSON.parse(stored);
   } catch {
     return {};
   }
 }
 
-function writePlaylistCache(cache: PlaylistCacheMap) {
-  try {
-    sessionStorage.setItem(PLAYLIST_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // Ignore storage errors
-  }
+/** Writes the playlist cache to session storage. */
+function writePlaylistCache(cache: PlaylistCacheMap): void {
+  writeSessionStorageJson(PLAYLIST_CACHE_KEY, cache);
 }
 
-function getFreshCachedPlaylist(cache: PlaylistCacheMap, id: string) {
+/** Returns a fresh cached playlist DTO, or `null` when missing/stale. */
+function getFreshCachedPlaylist(cache: PlaylistCacheMap, id: string): PlaylistApiDto | null {
   const entry = cache[id];
   if (!entry) return null;
   if (Date.now() - entry.fetchedAt > CLIENT_CACHE_MAX_AGE_MS) return null;
@@ -73,7 +87,7 @@ function getFreshCachedPlaylist(cache: PlaylistCacheMap, id: string) {
 
 async function fetchPlaylistsBatch(
   playlistIds: string[],
-  options?: { refresh?: boolean }
+  options?: FetchPlaylistsBatchOptions
 ): Promise<BatchPlaylistResponse> {
   const requestUrl = new URL("/api/playlists", window.location.origin);
   requestUrl.searchParams.set("lists", playlistIds.join(","));
@@ -107,7 +121,7 @@ async function fetchPlaylistsBatch(
  * Main analyzer container: input parsing, fetch orchestration,
  * local persistence, ordering mode, and table wiring.
  */
-function AppInner() {
+function AppInner(): React.ReactElement {
   const playlistCacheRef = React.useRef<PlaylistCacheMap>({});
   const isDemoModeRef = React.useRef(false);
 
@@ -122,7 +136,10 @@ function AppInner() {
 
   /** Fetches and hydrates multiple rows in one backend batch call. */
   const hydrateRowsBatch = React.useCallback(
-    async (targets: Array<{ rowId: string; playlistId: string }>, options?: { forceRefresh?: boolean }) => {
+    async (
+      targets: Array<{ rowId: string; playlistId: string }>,
+      options?: { forceRefresh?: boolean }
+    ): Promise<void> => {
       if (!targets.length) return;
       const forceRefresh = options?.forceRefresh ?? false;
 
@@ -259,7 +276,6 @@ function AppInner() {
           description: errorMessage
         });
 
-        // Remove all rows that were being hydrated
         setRows((prev) =>
           prev.filter((entry) => !targetByRowId.has(entry.id))
         );
@@ -280,7 +296,7 @@ function AppInner() {
       return;
     }
 
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = readSessionStorageItem(STORAGE_KEY);
     if (!raw) return;
 
     try {
@@ -361,7 +377,7 @@ function AppInner() {
         }))
     };
 
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    writeSessionStorageJson(STORAGE_KEY, payload);
   }, [customSpeed, defaultRangeEnd, defaultRangeStart, rows, sorting]);
 
   /** Parses pasted input, appends rows, and starts fetches for valid playlist IDs. */
@@ -443,13 +459,13 @@ function AppInner() {
   }, [defaultRangeEnd, defaultRangeStart, hydrateRowsBatch, inputText, rows]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card className="overflow-hidden border-border-contrast/70 bg-surface-dark/90 shadow-lift">
         <CardHeader className="bg-[linear-gradient(180deg,rgba(26,36,40,0.94),rgba(8,12,14,0.92))] p-4 md:p-5">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white">Playlist input</p>
-              <p className="mt-1 text-xs text-warm-muted">Links, playlist IDs, or mixed batches.</p>
+              <p className="text-sm font-semibold text-white">Add playlists to compare</p>
+              <p className="mt-1 text-xs text-warm-muted">Paste one per line, comma-separated links, or raw playlist IDs.</p>
             </div>
             <span className="rounded-md border border-accent/25 bg-accent-soft/60 px-2.5 py-1 font-mono text-[11px] font-semibold text-accent">
               Session only
@@ -465,7 +481,7 @@ function AppInner() {
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
                 onKeyDown={(event) => {
-                  if ((event.key === "Enter" && event.ctrlKey) || event.key === "Enter") {
+                  if (shouldSubmitPlaylistInputKey(event)) {
                     if (inputText.trim()) {
                       event.preventDefault();
                       analyzeInput();
@@ -498,7 +514,7 @@ function AppInner() {
                         placeholder="Start"
                         value={defaultRangeStart ?? ""}
                         onChange={(event) => setDefaultRangeStart(toNullablePositiveInt(event.target.value))}
-                        className="h-9 w-24 px-2 py-1 text-center text-xs"
+                        className="h-11 w-28 px-2 py-1 text-center text-sm"
                         inputMode="numeric"
                         aria-label="Default range start"
                       />
@@ -514,7 +530,7 @@ function AppInner() {
                         placeholder="End"
                         value={defaultRangeEnd ?? ""}
                         onChange={(event) => setDefaultRangeEnd(toNullablePositiveInt(event.target.value))}
-                        className="h-9 w-24 px-2 py-1 text-center text-xs"
+                        className="h-11 w-28 px-2 py-1 text-center text-sm"
                         inputMode="numeric"
                         aria-label="Default range end"
                       />
@@ -620,7 +636,7 @@ function AppInner() {
   );
 }
 
-export default function App() {
+export default function App(): React.ReactElement {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

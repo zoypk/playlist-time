@@ -5,7 +5,10 @@ import {
   getRangeInfo,
   normalizeRangeForTotal,
   parsePlaylistInput,
+  readSessionStorageItem,
+  shouldSubmitPlaylistInputKey,
   tryExtractPlaylistId,
+  writeSessionStorageJson,
 } from "./utils";
 
 function playlistRow(overrides = {}) {
@@ -30,6 +33,18 @@ function playlistRow(overrides = {}) {
 }
 
 describe("playlist input parsing", () => {
+  test("uses only Ctrl+Enter as the textarea submit shortcut", () => {
+    expect(shouldSubmitPlaylistInputKey({ key: "Enter", ctrlKey: true })).toBe(
+      true,
+    );
+    expect(shouldSubmitPlaylistInputKey({ key: "Enter", ctrlKey: false })).toBe(
+      false,
+    );
+    expect(shouldSubmitPlaylistInputKey({ key: "a", ctrlKey: true })).toBe(
+      false,
+    );
+  });
+
   test("extracts playlist IDs from common pasted URL shapes", () => {
     expect(
       tryExtractPlaylistId(
@@ -55,6 +70,34 @@ describe("playlist input parsing", () => {
       "https://youtube.com/playlist?list=PLabc1234567890",
       "PLxyz9876543210",
     ]);
+  });
+});
+
+describe("session storage helpers", () => {
+  test("returns false instead of throwing when session storage writes fail", () => {
+    const storage = {
+      getItem() {
+        return null;
+      },
+      setItem() {
+        throw new Error("quota exceeded");
+      },
+    };
+
+    expect(writeSessionStorageJson("playlist-time:test", { rows: [] }, storage)).toBe(
+      false,
+    );
+  });
+
+  test("returns null instead of throwing when session storage reads fail", () => {
+    const storage = {
+      getItem() {
+        throw new Error("storage unavailable");
+      },
+      setItem() {},
+    };
+
+    expect(readSessionStorageItem("playlist-time:test", storage)).toBeNull();
   });
 });
 

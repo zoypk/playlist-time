@@ -11,7 +11,9 @@ import type { PlaylistDto } from "../../src/shared/contracts";
 
 export type { PlaylistDto } from "../../src/shared/contracts";
 
+/** Cloudflare Pages environment bindings required by the playlist API. */
 export interface Env {
+  /** Comma-separated YouTube Data API keys used with round-robin rotation. */
   YOUTUBE_KEYS: string;
 }
 
@@ -19,6 +21,8 @@ type HandlerContext = {
   request: Request;
   env: Env;
 };
+
+type CloudflareCacheStorage = CacheStorage & { default: Cache };
 
 type YoutubeErrorPayload = {
   error?: {
@@ -77,6 +81,11 @@ type VideoBatchResult =
   | { ok: true; json: VideosResponse }
   | { ok: false; response: Response };
 
+type ParsedYoutubeError = {
+  reason: string;
+  message: string;
+};
+
 const RETRYABLE_REASONS = new Set([
   "quotaExceeded",
   "dailyLimitExceeded",
@@ -102,15 +111,20 @@ const inflightRequests = new Map<string, Promise<Response>>();
 
 let keyCursor = 0;
 
-function logPlaylistEvent(
+function logPlaylistError(
   event: string,
   details: Record<string, number | string> = {},
-) {
-  console.log("[Playlist]", JSON.stringify({ event, ...details }));
+): void {
+  console.error("[Playlist]", JSON.stringify({ event, ...details }));
+}
+
+/** Returns the Cloudflare default cache for Pages Function responses. */
+export function getDefaultCache(): Cache {
+  return (caches as CloudflareCacheStorage).default;
 }
 
 /** Parses configured YouTube API keys from env string. */
-export function parseYoutubeKeys(raw: string) {
+export function parseYoutubeKeys(raw: string): string[] {
   return (raw || "")
     .split(",")
     .map((entry) => entry.trim())
@@ -118,7 +132,7 @@ export function parseYoutubeKeys(raw: string) {
 }
 
 /** Builds canonical cache key for a playlist payload. */
-export function buildPlaylistCacheKey(request: Request, playlistId: string) {
+export function buildPlaylistCacheKey(request: Request, playlistId: string): Request {
   const requestUrl = new URL(request.url);
   const cacheUrl = new URL("/api/playlist", requestUrl.origin);
   cacheUrl.search = `list=${encodeURIComponent(playlistId)}`;
@@ -130,7 +144,7 @@ export function json(
   data: unknown,
   status = 200,
   headers: Record<string, string> = {},
-) {
+): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -141,10 +155,10 @@ export function json(
 }
 
 /** Adds cache status metadata without mutating the original response. */
-export function withCacheStatus(
+function withCacheStatus(
   response: Response,
   status: "MISS" | "HIT" | "BYPASS",
-) {
+): Response {
   const headers = new Headers(response.headers);
   headers.set(CACHE_STATUS_HEADER, status);
   return new Response(response.body, {
@@ -154,7 +168,7 @@ export function withCacheStatus(
 }
 
 /** Derives a coarse client key for lightweight in-memory rate limiting. */
-export function getClientKey(request: Request) {
+export function getClientKey(request: Request): string {
   const ip =
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-forwarded-for") ||
@@ -166,7 +180,7 @@ export function getClientKey(request: Request) {
  * Fixed-window rate limiter.
  * Returns true when the current client key exceeds request quota.
  */
-export function isRateLimited(clientKey: string) {
+export function isRateLimited(clientKey: string): boolean {
   const now = Date.now();
 
   for (const [key, bucket] of rateBuckets) {
@@ -186,12 +200,12 @@ export function isRateLimited(clientKey: string) {
 }
 
 /** Basic playlist id format guard to reject obvious invalid input. */
-export function isValidPlaylistId(playlistId: string) {
+export function isValidPlaylistId(playlistId: string): boolean {
   return /^[A-Za-z0-9_-]{10,100}$/.test(playlistId);
 }
 
 /** Parses ISO-8601 duration strings (e.g. PT1H20M10S) into seconds. */
-function parseIsoDurationToSeconds(value: string) {
+function parseIsoDurationToSeconds(value: string): number {
   const match = value.match(
     /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
   );
@@ -209,7 +223,7 @@ function parseIsoDurationToSeconds(value: string) {
  * Parses playlist item clip markers (`startAt`/`endAt`) into seconds.
  * Supports plain seconds, ISO durations, and mm:ss / hh:mm:ss formats.
  */
-function parseClipTimeToSeconds(value?: string) {
+function parseClipTimeToSeconds(value?: string): number | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -232,18 +246,18 @@ function parseClipTimeToSeconds(value?: string) {
 }
 
 /** Returns the next key index for round-robin usage. */
-function getNextKeyStartIndex(keysLength: number) {
+function getNextKeyStartIndex(keysLength: number): number {
   if (keysLength <= 0) return 0;
   const index = keyCursor % keysLength;
   keyCursor = (keyCursor + 1) % keysLength;
   return index;
 }
 
-function shouldRotateKey(status: number, reason: string) {
+function shouldRotateKey(status: number, reason: string): boolean {
   return status === 403 || status === 429 || RETRYABLE_REASONS.has(reason);
 }
 
-async function parseYoutubeError(response: Response) {
+async function parseYoutubeError(response: Response): Promise<ParsedYoutubeError> {
   let reason = "";
   let message = "YouTube API error";
 
@@ -264,7 +278,7 @@ async function parseYoutubeError(response: Response) {
  * Calls a YouTube endpoint and retries in ring-order across keys
  * when the error indicates quota/rate/key rotation is appropriate.
  */
-async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
+async function youtubeFetchWithRotation(keys: string[], endpoint: string): Promise<Response> {
   let last: Response | null = null;
   const startIndex = getNextKeyStartIndex(keys.length);
 
@@ -278,20 +292,13 @@ async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
     last = response;
 
     if (response.ok) {
-      if (attempt > 0) {
-        console.log(`[YouTube API] Success after ${attempt} retry(ies)`);
-      }
       return response;
     }
 
     const parsedError = await parseYoutubeError(response);
     if (!shouldRotateKey(response.status, parsedError.reason)) {
-      console.log(`[YouTube API] Non-retryable error: ${response.status} ${parsedError.reason}`);
+      console.error(`[YouTube API] Non-retryable error: ${response.status} ${parsedError.reason}`);
       return response;
-    }
-    
-    if (keys.length > 1) {
-      console.log(`[YouTube API] Rotating key (attempt ${attempt + 1}/${keys.length}): ${parsedError.reason}`);
     }
   }
 
@@ -299,7 +306,7 @@ async function youtubeFetchWithRotation(keys: string[], endpoint: string) {
 }
 
 /** Maps raw YouTube API failures to frontend-friendly error responses. */
-async function toUserFacingError(response: Response) {
+async function toUserFacingError(response: Response): Promise<Response> {
   const { reason, message } = await parseYoutubeError(response);
   const status = response.status;
   const normalizedReason = reason.toLowerCase();
@@ -336,10 +343,10 @@ export async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
   worker: (item: T, index: number) => Promise<R>,
-) {
+): Promise<R[]> {
   if (!items.length) return [] as R[];
 
-  const results = new Array<R>(items.length);
+  const results: R[] = [];
   let index = 0;
 
   const runners = Array.from(
@@ -358,9 +365,6 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
-/**
- * Fetches and composes the compact playlist DTO used by the frontend table.
- */
 export async function buildPlaylistDto(
   playlistId: string,
   keys: string[],
@@ -536,7 +540,7 @@ export async function buildPlaylistDto(
  *
  * Returns a compact DTO optimized for range-based frontend calculations.
  */
-export const onRequestGet = async ({ request, env }: HandlerContext) => {
+export const onRequestGet = async ({ request, env }: HandlerContext): Promise<Response> => {
   const requestUrl = new URL(request.url);
   const playlistId = requestUrl.searchParams.get("list")?.trim() || "";
   const forceRefresh = requestUrl.searchParams.get("refresh") === "1";
@@ -566,29 +570,24 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     return json({ error: "Server misconfigured: YOUTUBE_KEYS is empty" }, 500);
   }
 
-  const cache = (caches as unknown as { default: Cache }).default;
+  const cache = getDefaultCache();
   const cacheKey = buildPlaylistCacheKey(request, playlistId);
 
-  const buildAndStoreResponse = async () => {
+  const buildAndStoreResponse = async (): Promise<Response> => {
     const startTime = Date.now();
-    logPlaylistEvent("build_start", { status: "started" });
 
     const dtoOrError = await buildPlaylistDto(playlistId, keys);
     if (dtoOrError instanceof Response) {
-      logPlaylistEvent("build_error", { status: dtoOrError.status });
+      logPlaylistError("build_error", { status: dtoOrError.status });
       return dtoOrError;
     }
 
     const duration = Date.now() - startTime;
-    logPlaylistEvent("build_success", {
-      status: 200,
-      videoCount: dtoOrError.orderedDurationsSec.length,
-      durationMs: duration,
-    });
 
     const response = json(dtoOrError, 200, {
       "cache-control": `public, max-age=0, s-maxage=${FRESH_TTL_SECONDS}`,
       [CACHE_TIMESTAMP_HEADER]: String(Date.now()),
+      "server-timing": `playlist;dur=${duration}`,
     });
 
     await cache.put(cacheKey, response.clone());
@@ -598,7 +597,6 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   if (!forceRefresh) {
     const cached = await cache.match(cacheKey);
     if (cached) {
-      logPlaylistEvent("cache_lookup", { status: "hit" });
       return withCacheStatus(cached, "HIT");
     }
   }
@@ -606,12 +604,10 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
   // Check for in-flight request to prevent duplicate API calls
   const existingRequest = inflightRequests.get(playlistId);
   if (existingRequest) {
-    logPlaylistEvent("deduplicate", { status: "joined" });
     const response = await existingRequest;
     return withCacheStatus(response.clone(), forceRefresh ? "BYPASS" : "MISS");
   }
 
-  // Create new request and track it
   const requestPromise = buildAndStoreResponse();
   inflightRequests.set(playlistId, requestPromise);
 
@@ -619,7 +615,6 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     const response = await requestPromise;
     return withCacheStatus(response, forceRefresh ? "BYPASS" : "MISS");
   } finally {
-    // Clean up in-flight tracking
     inflightRequests.delete(playlistId);
   }
 };

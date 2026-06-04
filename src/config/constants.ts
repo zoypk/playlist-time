@@ -2,6 +2,7 @@
  * Centralized configuration and constants for the playlist-time application.
  * Single source of truth for magic numbers, strings, and other configuration values.
  */
+import type { SortingState } from "@tanstack/react-table";
 
 /** Storage key for persisted UI state (sorting, ranges, preferences) */
 export const STORAGE_KEY = "playlist-time:v1";
@@ -37,29 +38,5 @@ export const QUERY_CACHE_TIME_MS = 1000 * 60 * 60;
  */
 export const BUILT_IN_SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
 
-/**
- * Column definitions for playback speed metrics in the playlist table.
- * Maps each built-in speed to a column with label and display format.
- */
-export const SPEED_COLUMNS = BUILT_IN_SPEEDS.map((speed) => ({
-  id: `speed_${String(speed).replace(".", "_")}`,
-  label: `${speed.toFixed(2)}x`,
-  speed,
-}));
-
-/** Default sorting configuration when no sort preference persisted */
-export const DEFAULT_SORTING = [{ id: "speed_1", desc: true }];
-
-/**
- * Debounce duration for localStorage writes.
- * Prevents excessive storage transactions during rapid state changes.
- * Currently 1000ms (1 second).
- */
-export const STORAGE_DEBOUNCE_MS = 1000;
-
-/**
- * Maximum debounce duration for localStorage writes.
- * Ensures state persists within reasonable time even during continuous activity.
- * Currently 10000ms (10 seconds).
- */
-export const STORAGE_MAX_WAIT_MS = 10000;
+/** Default sorting configuration when no sort preference is persisted. */
+export const DEFAULT_SORTING: SortingState = [{ id: "speed_1", desc: true }];

@@ -33,17 +33,27 @@ import {
 } from "./utils";
 
 type PlaylistsTableProps = {
+  /** Rows currently rendered in the analyzer. */
   rows: PlaylistRow[];
+  /** Controlled TanStack sorting state. */
   sorting: SortingState;
+  /** Current custom playback speed multiplier. */
   customSpeed: number;
+  /** Persists a committed custom speed. */
   onCustomSpeedCommit: (value: number) => void;
+  /** Updates table sorting. */
   onSortingChange: (updater: SortingState | ((prev: SortingState) => SortingState)) => void;
+  /** Applies a per-row nullable range where `null` means all videos. */
   onRangeApply: (rowId: string, start: number | null, end: number | null) => void;
+  /** Removes a row by local row id. */
   onRemoveRow: (rowId: string) => void;
+  /** Reorders rows by source and destination row ids. */
   onReorderRows: (sourceId: string, destinationId: string) => void;
+  /** Reports the currently visible sorted order for drag reordering. */
   onVisibleOrderChange: (ids: string[]) => void;
 };
 
+/** Playback speed column definition used by desktop and mobile tables. */
 type SpeedColumn = {
   id: string;
   label: string;
@@ -71,7 +81,7 @@ function SortHeader({
   canSort: boolean;
   primary?: boolean;
   title?: string;
-}) {
+}): React.ReactElement {
   const icon = sorted === "desc" ? <ArrowDown className="size-3.5" /> : sorted === "asc" ? <ArrowUp className="size-3.5" /> : <ArrowUpDown className="size-3.5 opacity-50" />;
   const fullTitle = title;
 
@@ -83,13 +93,13 @@ function SortHeader({
   );
 }
 
-function formatSignedDurationDelta(oneXSeconds: number, speedSeconds: number) {
+function formatSignedDurationDelta(oneXSeconds: number, speedSeconds: number): string {
   const deltaSeconds = speedSeconds - oneXSeconds;
   const sign = deltaSeconds > 0 ? "+" : "-";
   return `${sign}${formatDuration(Math.abs(deltaSeconds))}`;
 }
 
-function getColumnAriaLabel(columnId: string) {
+function getColumnAriaLabel(columnId: string): string {
   if (columnId === "playlist") return "Sort by playlist";
   if (columnId === "views") return "Sort by views";
   if (columnId === "avg_length") return "Sort by average length";
@@ -102,7 +112,7 @@ function getColumnAriaLabel(columnId: string) {
 }
 
 /** Renders the standardized row-level error badge. */
-function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
+function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }): React.ReactElement {
   const map: Record<string, string> = {
     invalid: "Invalid URL/ID",
     unavailable: "Private/Unavailable",
@@ -114,7 +124,7 @@ function ErrorBadge({ type }: { type: PlaylistRow["errorType"] }) {
   return <Badge variant="destructive">{map[type ?? "unknown"]}</Badge>;
 }
 
-function buildPlaylistUrl(playlistId: string | null) {
+function buildPlaylistUrl(playlistId: string | null): string | null {
   return playlistId
     ? `https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`
     : null;
@@ -132,7 +142,7 @@ function MobileSpeedTile({
   delta?: string;
   isSaving?: boolean;
   primary?: boolean;
-}) {
+}): React.ReactElement | null {
   return (
     <div
       className={`min-w-0 rounded-md border p-3 ${
@@ -174,7 +184,7 @@ function MobilePlaylistCard({
   onRangeApply: (start: number | null, end: number | null) => void;
   onRemoveRow: () => void;
   onCustomSpeedCommit: (value: number) => void;
-}) {
+}): React.ReactElement | null {
   const playlistTitle = row.data?.title?.trim() || row.playlistId || "Playlist";
   const playlistUrl = buildPlaylistUrl(row.playlistId);
 
@@ -317,7 +327,7 @@ function MobilePlaylistCard({
           onOpenChange={onRangeOpenChange}
           onApply={onRangeApply}
         />
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 rounded-md border border-border-dark bg-background-dark/80 px-2 py-1 shadow-inset">
           <span className="text-xs font-semibold text-warm-muted">Custom</span>
           <SpeedControl value={customSpeed} onCommit={onCustomSpeedCommit} />
         </div>
@@ -358,13 +368,29 @@ type TotalsSummary = {
   successfulRows: number;
 };
 
+/** Serializable row used for clipboard and CSV exports. */
+type PlaylistExportRow = {
+  playlistTitle: string;
+  channelTitle: string;
+  playlistId: string;
+  selectedVideos: number;
+  totalVideos: number;
+  rangeLabel: string;
+  duration1x: string;
+  durationCustom: string;
+  customSpeed: string;
+  views: number;
+  published: string;
+  playlistUrl: string;
+};
+
 function MobileTotalsCard({
   totals,
   speedColumns
 }: {
   totals: TotalsSummary;
   speedColumns: SpeedColumn[];
-}) {
+}): React.ReactElement {
   const primarySpeed = speedColumns.find((speedColumn) => speedColumn.primary) ?? speedColumns[0];
   const secondarySpeeds = speedColumns.filter((speedColumn) => speedColumn.id !== primarySpeed.id);
   const selected = totals.totalSelectedDuration;
@@ -404,7 +430,7 @@ function MobileTotalsCard({
   );
 }
 
-function formatCalendarDate(offsetDays: number) {
+function formatCalendarDate(offsetDays: number): string {
   if (!Number.isFinite(offsetDays) || offsetDays <= 0) return "-";
   const date = new Date();
   date.setDate(date.getDate() + Math.max(0, offsetDays - 1));
@@ -415,7 +441,7 @@ function formatCalendarDate(offsetDays: number) {
   }).format(date);
 }
 
-function escapeCsvValue(value: string | number) {
+function escapeCsvValue(value: string | number): string {
   const raw = String(value);
   return /[",\n\r]/.test(raw) ? `"${raw.replace(/"/g, '""')}"` : raw;
 }
@@ -424,7 +450,7 @@ function getPlaylistExportRows(
   rows: PlaylistRow[],
   metricsById: Map<string, RowMetrics>,
   customSpeed: number
-) {
+): PlaylistExportRow[] {
   return rows
     .filter((row) => row.status === "success")
     .map((row) => {
@@ -458,7 +484,7 @@ function buildCopySummary(
   totals: TotalsSummary,
   dailyMinutes: number,
   planDays: number
-) {
+): string {
   const adjustedTotal = totals.totalSelectedDuration / customSpeed;
   const lines = [
     "playlist-time watch-time summary",
@@ -482,7 +508,7 @@ function buildCsvSummary(
   rows: PlaylistRow[],
   metricsById: Map<string, RowMetrics>,
   customSpeed: number
-) {
+): string {
   const header = [
     "Playlist",
     "Channel",
@@ -525,7 +551,7 @@ function WatchPlanPanel({
   metricsById: Map<string, RowMetrics>;
   totals: TotalsSummary;
   customSpeed: number;
-}) {
+}): React.ReactElement | null {
   const [dailyMinutes, setDailyMinutes] = React.useState(60);
   const safeDailyMinutes = Math.max(1, dailyMinutes || 1);
   const adjustedTotalSeconds = totals.totalSelectedDuration / customSpeed;
@@ -539,7 +565,8 @@ function WatchPlanPanel({
         buildCopySummary(rows, metricsById, customSpeed, totals, safeDailyMinutes, planDays)
       );
       toast.success("Summary copied");
-    } catch {
+    } catch (error) {
+      console.error("Could not copy playlist summary", error);
       toast.error("Could not copy summary");
     }
   }, [customSpeed, metricsById, planDays, rows, safeDailyMinutes, totals]);
@@ -574,9 +601,13 @@ function WatchPlanPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <label className="rounded-md border border-border-dark bg-background-dark/82 p-3 shadow-inset">
+        <label
+          htmlFor="daily-watch-minutes"
+          className="rounded-md border border-border-dark bg-background-dark/82 p-3 shadow-inset"
+        >
           <span className="block text-[11px] font-semibold text-warm-muted">Min/day</span>
           <Input
+            id="daily-watch-minutes"
             type="number"
             min={1}
             step={5}
@@ -586,7 +617,7 @@ function WatchPlanPanel({
               const next = Number.parseInt(event.target.value, 10);
               setDailyMinutes(Number.isFinite(next) && next > 0 ? next : 1);
             }}
-            className="mt-1 h-8 border-none bg-transparent p-0 font-mono text-lg font-bold text-white focus-visible:ring-0"
+            className="mt-1 h-10 border-none bg-transparent p-0 font-mono text-lg font-bold text-white focus-visible:ring-0"
             aria-label="Daily watch minutes"
           />
         </label>
@@ -605,11 +636,11 @@ function WatchPlanPanel({
           <div className="text-[11px] font-semibold text-warm-muted">Finish by</div>
           <div className="font-mono font-bold text-gray-100">{finishDate}</div>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={copySummary}>
+        <Button type="button" variant="outline" className="h-10 gap-2" onClick={copySummary}>
           <Copy className="size-3.5" aria-hidden="true" />
           Copy
         </Button>
-        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={downloadCsv}>
+        <Button type="button" variant="outline" className="h-10 gap-2" onClick={downloadCsv}>
           <Download className="size-3.5" aria-hidden="true" />
           CSV
         </Button>
@@ -629,7 +660,7 @@ export default function PlaylistsTable({
   onRemoveRow,
   onReorderRows,
   onVisibleOrderChange
-}: PlaylistsTableProps) {
+}: PlaylistsTableProps): React.ReactElement | null {
   const [openRangeId, setOpenRangeId] = React.useState<string | null>(null);
   const [draggedId, setDraggedId] = React.useState<string | null>(null);
   const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
@@ -999,7 +1030,7 @@ export default function PlaylistsTable({
     [table, onReorderRows, onSortingChange, sorting.length]
   );
 
-  const visibleIds = React.useMemo(() => table.getRowModel().rows.map((entry) => entry.original.id), [table, rows, sorting]);
+  const visibleIds = React.useMemo(() => table.getRowModel().rows.map((entry) => entry.original.id), [table]);
 
   React.useEffect(() => {
     onVisibleOrderChange(visibleIds);

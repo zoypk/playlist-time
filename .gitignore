@@ -38,3 +38,7 @@ pnpm-debug.log*
 
 nul
 .lh-temp/
+
+# Playwright artifacts
+playwright-report/
+test-results/

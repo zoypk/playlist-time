@@ -5,15 +5,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { clamp } from "./utils";
 
 type SpeedControlProps = {
+  /** Current playback speed multiplier. */
   value: number;
+  /** Called with a clamped speed when the user commits the draft value. */
   onCommit: (value: number) => void;
+  /** Uses tighter spacing when rendered inside compact surfaces. */
   compact?: boolean;
 };
 
 /**
  * Custom speed editor with native up/down arrows and commit-on-blur/enter behavior.
  */
-function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
+function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps): React.ReactElement {
   const [draft, setDraft] = React.useState(value.toFixed(2));
 
   React.useEffect(() => {
@@ -33,19 +36,19 @@ function SpeedControl({ value, onCommit, compact = false }: SpeedControlProps) {
       <div
         className={
           compact
-            ? "flex items-center gap-1"
-            : "flex items-center rounded-md border border-border-dark bg-background-dark/70 px-2 py-1 shadow-inset"
+            ? "flex min-h-10 items-center gap-1"
+            : "flex min-h-11 items-center rounded-md border border-border-dark bg-background-dark/70 px-2 py-1 shadow-inset"
         }
       >
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 rounded border border-border-dark bg-surface-darker/90 px-2 py-1">
+            <div className="flex min-h-10 items-center gap-1 rounded border border-border-dark bg-surface-darker/90 px-2 py-1">
               <Input
                 type="number"
                 step={0.05}
                 min={0.1}
                 max={3}
-                className="h-auto w-16 border-none bg-transparent p-0 text-center font-mono text-xs font-semibold text-white focus-visible:ring-0"
+                className={`${compact ? "w-16" : "w-20"} h-9 border-none bg-transparent p-0 text-center font-mono text-sm font-semibold text-white focus-visible:ring-0`}
                 value={draft}
                 inputMode="decimal"
                 aria-label="Custom playback speed"

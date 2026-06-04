@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Bun checks
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: |
+          echo "::group::bun install"
+          trap 'echo "::endgroup::"' EXIT
+          bun install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: bun audit
+
+      - name: Check
+        run: bun run check
+
+      - name: Test
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Add job summary
+        if: always()
+        run: |
+          echo "### CI baseline" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Install: \`bun install --frozen-lockfile\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Audit: \`bun audit\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Checks: \`bun run check\`, \`bun test\`, \`bun run build\`" >> "$GITHUB_STEP_SUMMARY"

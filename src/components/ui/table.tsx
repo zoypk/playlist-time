@@ -102,18 +102,6 @@ const TableCell = React.forwardRef<
 ))
 TableCell.displayName = "TableCell"
 
-const TableCaption = React.forwardRef<
-  HTMLTableCaptionElement,
-  React.HTMLAttributes<HTMLTableCaptionElement>
->(({ className, ...props }, ref) => (
-  <caption
-    ref={ref}
-    className={cn("mt-4 text-sm text-gray-400", className)}
-    {...props}
-  />
-))
-TableCaption.displayName = "TableCaption"
-
 export {
   Table,
   TableHeader,
@@ -122,5 +110,4 @@ export {
   TableHead,
   TableRow,
   TableCell,
-  TableCaption,
 }

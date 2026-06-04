@@ -5,6 +5,7 @@ import {
   CACHE_TIMESTAMP_HEADER,
   FRESH_TTL_SECONDS,
   getClientKey,
+  getDefaultCache,
   isRateLimited,
   isValidPlaylistId,
   json,
@@ -13,28 +14,31 @@ import {
   type Env,
   type PlaylistDto,
 } from "./playlist";
+import type {
+  BatchCacheStats,
+  BatchPlaylistError,
+  PlaylistCacheStatus,
+} from "../../src/shared/contracts";
 
+/** Minimal Pages Function invocation context used by the batch GET handler. */
 type HandlerContext = {
   request: Request;
   env: Env;
 };
 
-type BatchError = {
-  playlistId: string;
-  status: number;
-  error: string;
-};
+type BatchError = BatchPlaylistError;
 
 type BatchSuccess = {
   playlistId: string;
   data: PlaylistDto;
-  cacheStatus: "HIT" | "MISS" | "BYPASS";
+  cacheStatus: PlaylistCacheStatus;
 };
 
 const MAX_BATCH_IDS = 50;
 const PLAYLIST_BUILD_CONCURRENCY = 6;
 
-function extractPlaylistId(input: string) {
+/** Extracts a YouTube playlist id from a raw id, URL, or `list=` token. */
+function extractPlaylistId(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return "";
 
@@ -51,7 +55,8 @@ function extractPlaylistId(input: string) {
   }
 }
 
-async function parseResponseError(response: Response) {
+/** Reads a user-facing error message from a JSON or text response body. */
+async function parseResponseError(response: Response): Promise<string> {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     try {
@@ -115,11 +120,13 @@ async function resolvePlaylistInBatch(
 }
 
 /**
- * GET /api/playlists?lists=ID1,ID2,...
+ * GET /api/playlists?lists=ID1,ID2
  *
- * Batch endpoint used by Analyze flow to reduce Worker invocations.
+ * Resolves multiple playlists with dedupe, validation, shared cache lookup, and
+ * bounded backend concurrency. Partial failures are returned in `errors` while
+ * successful DTOs remain available in `results`.
  */
-export const onRequestGet = async ({ request, env }: HandlerContext) => {
+export const onRequestGet = async ({ request, env }: HandlerContext): Promise<Response> => {
   const requestUrl = new URL(request.url);
   const forceRefresh = requestUrl.searchParams.get("refresh") === "1";
   const listsParam =
@@ -172,7 +179,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
     return json({ error: "Server misconfigured: YOUTUBE_KEYS is empty" }, 500);
   }
 
-  const cache = (caches as unknown as { default: Cache }).default;
+  const cache = getDefaultCache();
 
   const resolved = await mapWithConcurrency(
     limitedIds,
@@ -183,7 +190,7 @@ export const onRequestGet = async ({ request, env }: HandlerContext) => {
 
   const results: PlaylistDto[] = [];
   const errors: BatchError[] = [...invalidErrors];
-  const cacheMeta = { hit: 0, miss: 0, bypass: 0 };
+  const cacheMeta: BatchCacheStats = { hit: 0, miss: 0, bypass: 0 };
 
   for (const entry of resolved) {
     if ("data" in entry) {

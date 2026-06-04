@@ -1,7 +1,7 @@
 import type { PlaylistRow, PlaylistRowErrorType, RangeInfo, RowMetrics } from "./types";
 
 /** Clamps a numeric value to an inclusive range. */
-export function clamp(value: number, min: number, max: number) {
+export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
@@ -9,7 +9,7 @@ export function clamp(value: number, min: number, max: number) {
  * Parses a positive integer from an input string.
  * Returns `null` for blank/invalid/non-positive values.
  */
-export function toNullablePositiveInt(value: string) {
+export function toNullablePositiveInt(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const parsed = Number.parseInt(trimmed, 10);
@@ -17,8 +17,55 @@ export function toNullablePositiveInt(value: string) {
   return parsed;
 }
 
+/** Returns true for the keyboard shortcut used to submit playlist input. */
+export function shouldSubmitPlaylistInputKey(event: { key: string; ctrlKey?: boolean }): boolean {
+  return event.key === "Enter" && event.ctrlKey === true;
+}
+
+type SessionStorageLike = Pick<Storage, "getItem" | "setItem">;
+
+function getSessionStorageTarget(storage?: SessionStorageLike | null): SessionStorageLike | null {
+  if (storage !== undefined) return storage;
+
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function readSessionStorageItem(
+  key: string,
+  storage?: SessionStorageLike | null
+): string | null {
+  const target = getSessionStorageTarget(storage);
+  if (!target) return null;
+
+  try {
+    return target.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeSessionStorageJson(
+  key: string,
+  value: unknown,
+  storage?: SessionStorageLike | null
+): boolean {
+  const target = getSessionStorageTarget(storage);
+  if (!target) return false;
+
+  try {
+    target.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Splits pasted text into tokens using newline/comma/whitespace delimiters. */
-export function parsePlaylistInput(text: string) {
+export function parsePlaylistInput(text: string): string[] {
   return text
     .split(/[\n,;\t\s]+/g)
     .map(normalizeInputToken)
@@ -29,11 +76,11 @@ export function parsePlaylistInput(text: string) {
  * Normalizes raw pasted tokens before ID extraction.
  * Handles missing protocols, wrapping punctuation, and encoded values.
  */
-function normalizeInputToken(value: string) {
+function normalizeInputToken(value: string): string {
   let token = value.trim();
   if (!token) return "";
 
-  token = token.replace(/^["'`<{(\[\s]+/g, "");
+  token = token.replace(/^["'`<{([\s]+/g, "");
   token = token.replace(/["'`>})\]\s]+$/g, "");
   token = token.replace(/[),;]+$/g, "");
   if (!token) return "";
@@ -56,7 +103,7 @@ function normalizeInputToken(value: string) {
 /**
  * Extracts a playlist ID from a YouTube URL or raw ID input.
  */
-export function tryExtractPlaylistId(value: string) {
+export function tryExtractPlaylistId(value: string): string | null {
   const raw = normalizeInputToken(value);
   if (!raw) return null;
 
@@ -83,12 +130,12 @@ export function tryExtractPlaylistId(value: string) {
   return raw;
 }
 
-export function isValidPlaylistId(value: string) {
+export function isValidPlaylistId(value: string): boolean {
   return /^[A-Za-z0-9_-]{10,100}$/.test(value);
 }
 
 /** Creates a stable row id for client-side playlist entries. */
-export function createRowId() {
+export function createRowId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
@@ -96,7 +143,7 @@ export function createRowId() {
 }
 
 /** Formats seconds into compact watch-time strings used in table cells. */
-export function formatDuration(seconds: number) {
+export function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(total / 3600);
   const mins = Math.floor((total % 3600) / 60);
@@ -113,7 +160,7 @@ export function formatDuration(seconds: number) {
  * Formats average duration with minute/second precision for short clips
  * and hour/minute precision for long clips.
  */
-export function formatAvgDuration(seconds: number) {
+export function formatAvgDuration(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
   const mins = Math.floor(total / 60);
   const secs = total % 60;
@@ -126,7 +173,7 @@ export function formatAvgDuration(seconds: number) {
 }
 
 /** Formats large view totals using compact notation. */
-export function formatViews(value: number) {
+export function formatViews(value: number): string {
   if (!Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en", {
     notation: "compact",
@@ -135,7 +182,7 @@ export function formatViews(value: number) {
 }
 
 /** Formats an ISO date as a readable calendar label. */
-export function formatDateLabel(value: string | null) {
+export function formatDateLabel(value: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
@@ -147,7 +194,7 @@ export function formatDateLabel(value: string | null) {
 }
 
 /** Formats an ISO date into a relative time label, e.g. "2 months ago". */
-export function formatRelativeTime(value: string | null) {
+export function formatRelativeTime(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -245,7 +292,7 @@ export function getRowMetrics(row: PlaylistRow): RowMetrics {
 }
 
 /** Human-friendly label shown in the range pill. */
-export function getRangePillLabel(range: RangeInfo) {
+export function getRangePillLabel(range: RangeInfo): string {
   if (range.unavailable) return "Range unavailable";
   if (range.totalVideos === 0) return "All (0)";
   if (range.isAll) return `All (${range.start}-${range.end})`;
@@ -255,7 +302,7 @@ export function getRangePillLabel(range: RangeInfo) {
 /**
  * Reorders rows by a list of ids while preserving unknown ids at the end.
  */
-export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: string[]) {
+export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: string[]): T[] {
   if (!orderedIds.length) return items;
   const indexById = new Map(orderedIds.map((id, index) => [id, index]));
   return [...items].sort((a, b) => {
@@ -266,15 +313,6 @@ export function reorderByIds<T extends { id: string }>(items: T[], orderedIds: s
     if (bi == null) return -1;
     return ai - bi;
   });
-}
-
-/** Tooltip text for time delta vs 1x playback. */
-export function speedCellTooltip(oneXSeconds: number, speedSeconds: number) {
-  if (oneXSeconds <= 0) return;
-  const delta = oneXSeconds - speedSeconds;
-  if (Math.abs(delta) < 1) return;
-  if (delta > 0) return `-${formatDuration(delta)}`;
-  return `+${formatDuration(Math.abs(delta))} `;
 }
 
 /** Maps API/network errors to display-friendly row error categories. */
@@ -326,7 +364,7 @@ const EXAMPLE_DATA_1 = {
   playlistId: "PLexample001",
   title: "React patterns for production dashboards",
   channelTitle: "Northstar Dev Notes",
-  thumbnailUrl: "https://picsum.photos/seed/react-patterns-dashboard/160/100",
+  thumbnailUrl: "/demo-thumbnails/react-patterns-dashboard.svg",
   publishedAt: "2023-07-18T10:00:00Z",
   totalVideoViewsSum: 2417683,
   orderedDurationsSec: [
@@ -343,7 +381,7 @@ const EXAMPLE_DATA_2 = {
   playlistId: "PLexample002",
   title: "Frontend build notes under eight minutes",
   channelTitle: "Layer Five Labs",
-  thumbnailUrl: "https://picsum.photos/seed/frontend-build-notes/160/100",
+  thumbnailUrl: "/demo-thumbnails/frontend-build-notes.svg",
   publishedAt: "2024-02-09T14:30:00Z",
   totalVideoViewsSum: 1782406,
   orderedDurationsSec: [

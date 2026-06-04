@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100" role="img" aria-labelledby="title desc">
+  <title id="title">React patterns dashboard demo thumbnail</title>
+  <desc id="desc">A deterministic local placeholder for the production dashboards demo playlist.</desc>
+  <rect width="160" height="100" fill="#101820"/>
+  <rect x="10" y="12" width="140" height="76" rx="6" fill="#17232d"/>
+  <rect x="22" y="24" width="48" height="18" rx="3" fill="#2ec4b6"/>
+  <rect x="78" y="24" width="60" height="8" rx="2" fill="#d9e2ec"/>
+  <rect x="78" y="38" width="42" height="8" rx="2" fill="#8fa3b7"/>
+  <rect x="22" y="52" width="28" height="22" rx="3" fill="#ff9f1c"/>
+  <rect x="58" y="52" width="28" height="22" rx="3" fill="#e71d36"/>
+  <rect x="94" y="52" width="44" height="22" rx="3" fill="#3a86ff"/>
+  <path d="M34 62h12M70 58v12M106 66h20" stroke="#101820" stroke-width="4" stroke-linecap="round"/>
+</svg>

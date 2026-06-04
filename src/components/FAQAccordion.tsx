@@ -1,15 +1,18 @@
+import type { ReactElement } from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./ui/accordion";
 
-interface FAQItem {
+/** Single question/answer pair rendered in the FAQ accordion. */
+export interface FAQItem {
   q: string;
   a: string;
 }
 
-interface FAQAccordionProps {
+/** Props for the compact FAQ accordion. */
+export interface FAQAccordionProps {
   items: FAQItem[];
 }
 
-export function FAQAccordion({ items }: FAQAccordionProps) {
+export function FAQAccordion({ items }: FAQAccordionProps): ReactElement {
   return (
     <Accordion type="single" collapsible className="mt-3 space-y-2">
       {items.map((item, index) => (

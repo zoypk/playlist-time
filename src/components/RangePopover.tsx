@@ -10,18 +10,24 @@ import { cn } from "../lib/utils";
 import { clamp, getRangePillLabel } from "./utils";
 
 type RangePopoverProps = {
+  /** Current normalized range metadata for the row. */
   range: RangeInfo;
+  /** Controlled popover open state. */
   isOpen: boolean;
+  /** Prevents range edits while the row cannot accept them. */
   disabled: boolean;
+  /** Optional styling for the trigger button. */
   triggerClassName?: string;
+  /** Called whenever the popover open state changes. */
   onOpenChange: (open: boolean) => void;
+  /** Applies nullable bounds where `null` means all videos. */
   onApply: (start: number | null, end: number | null) => void;
 };
 
 /**
  * Range editor popover for per-playlist start/end selection and presets.
  */
-function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange, onApply }: RangePopoverProps) {
+function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange, onApply }: RangePopoverProps): React.ReactElement {
   const [start, setStart] = React.useState<string>(range.start > 0 ? String(range.start) : "");
   const [end, setEnd] = React.useState<string>(range.end > 0 ? String(range.end) : "");
   const [presetCount, setPresetCount] = React.useState<string>("10");
@@ -33,7 +39,7 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
 
   const total = range.totalVideos;
 
-  const applyCurrent = () => {
+  const applyCurrent = (): void => {
     if (total <= 0) {
       onApply(null, null);
       return;
@@ -47,7 +53,7 @@ function RangePopover({ range, isOpen, disabled, triggerClassName, onOpenChange,
     onApply(Math.min(normalizedStart, normalizedEnd), Math.max(normalizedStart, normalizedEnd));
   };
 
-  const applyFirstLast = (mode: "first" | "last") => {
+  const applyFirstLast = (mode: "first" | "last"): void => {
     if (total <= 0) return;
     const nRaw = Number.parseInt(presetCount, 10);
     const n = clamp(Number.isFinite(nRaw) ? nRaw : 10, 1, total);

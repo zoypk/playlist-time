@@ -1,17 +1,21 @@
+import type { ReactElement } from "react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./ui/accordion";
 import { FAQAccordion } from "./FAQAccordion";
 
-interface Step {
+/** Ordered instruction shown in the calculation guide. */
+export interface Step {
   title: string;
   detail: string;
 }
 
-interface Feature {
+/** Short title/detail pair used for feature and comparison lists. */
+export interface Feature {
   title: string;
   detail: string;
 }
 
-interface ContentAccordionProps {
+/** SEO/supporting-content data rendered below the primary analyzer. */
+export interface ContentAccordionProps {
   faq: Array<{ q: string; a: string }>;
   howItWorks: Step[];
   features: Feature[];
@@ -19,7 +23,7 @@ interface ContentAccordionProps {
   whyUse: string;
 }
 
-export function ContentAccordion({ faq, howItWorks, features, comparison = [], whyUse }: ContentAccordionProps) {
+export function ContentAccordion({ faq, howItWorks, features, comparison = [], whyUse }: ContentAccordionProps): ReactElement {
   return (
     <Accordion type="single" collapsible defaultValue="how-it-works">
       <AccordionItem value="how-it-works" className="border-none">
