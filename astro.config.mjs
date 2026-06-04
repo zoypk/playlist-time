@@ -29,7 +29,9 @@ export default defineConfig({
           target: "http://127.0.0.1:8788",
           changeOrigin: false,
           configure: (proxy) => {
-            proxy.on("error", () => {});
+            const proxyEvents =
+              /** @type {{ on?: (event: "error", listener: () => void) => void }} */ (proxy);
+            proxyEvents.on?.("error", () => {});
           },
         },
       },

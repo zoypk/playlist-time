@@ -1,8 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const processEnv = (
+  globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }
+).process?.env ?? {};
+
 const baseURL =
-  process.env.SMOKE_BASE_URL ||
-  process.env.PLAYWRIGHT_BASE_URL ||
+  processEnv.SMOKE_BASE_URL ||
+  processEnv.PLAYWRIGHT_BASE_URL ||
   "http://127.0.0.1:4321";
 
 export default defineConfig({
@@ -13,7 +19,7 @@ export default defineConfig({
     timeout: 10_000
   },
   fullyParallel: true,
-  reporter: process.env.CI ? [["github"], ["list"]] : "list",
+  reporter: processEnv.CI ? [["github"], ["list"]] : "list",
   use: {
     baseURL,
     trace: "retain-on-failure",
