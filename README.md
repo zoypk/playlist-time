@@ -65,7 +65,7 @@ Some details that matter:
 - `src/pages/index.astro` mounts the page shell.
 - `src/components/App.tsx` owns the calculator flow.
 - `src/components/PlaylistsTable.tsx` renders playlist results.
-- `src/components/ContentAccordion.tsx` and `src/components/FAQAccordion.tsx` render the lower guide/FAQ section. That content is intentionally kept for SEO and `FAQPage` structured-data coverage, so treat it as product/SEO support copy rather than accidental filler.
+- `src/components/ContentAccordion.tsx` and `src/components/FAQAccordion.tsx` render the lower guide/FAQ section. Keep this content useful for real planning questions; the `FAQPage` structured data should mirror visible support copy rather than exist as standalone SEO filler.
 - `functions/api/playlist.ts` handles the single-playlist route.
 - `functions/api/playlists.ts` handles batch playlist analysis.
 - `src/shared/contracts.ts` keeps frontend and backend response shapes aligned.

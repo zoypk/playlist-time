@@ -19,11 +19,10 @@ export interface ContentAccordionProps {
   faq: Array<{ q: string; a: string }>;
   howItWorks: Step[];
   features: Feature[];
-  comparison?: Feature[];
   whyUse: string;
 }
 
-export function ContentAccordion({ faq, howItWorks, features, comparison = [], whyUse }: ContentAccordionProps): ReactElement {
+export function ContentAccordion({ faq, howItWorks, features, whyUse }: ContentAccordionProps): ReactElement {
   const quickChecks = [
     { label: "Speed math", value: "1x-3x" },
     { label: "Playlist range", value: "Start-End" },
@@ -95,22 +94,8 @@ export function ContentAccordion({ faq, howItWorks, features, comparison = [], w
                 </ul>
               </section>
 
-              {comparison.length > 0 && (
-                <section>
-                  <h2 className="text-sm font-semibold text-primary">Where it helps most</h2>
-                  <ul className="mt-4 grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
-                    {comparison.map((item, i) => (
-                      <li key={i} className="rounded-md border border-border-dark/75 bg-background-dark/35 px-3 py-2">
-                        <span className="font-medium text-gray-100">{item.title}</span>
-                        <span className="block text-warm-muted">{item.detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
               <section>
-                <h2 className="text-sm font-semibold text-primary">Common playlist time questions</h2>
+                <h2 className="text-sm font-semibold text-primary">Useful planning questions</h2>
                 <FAQAccordion items={faq} />
               </section>
             </div>

@@ -14,40 +14,28 @@ const description =
 
 const faq = [
   {
-    q: "How do I calculate YouTube playlist duration?",
-    a: "Paste one or more playlist URLs into the input field and click Analyze. playlist-time fetches every video in the playlist, sums their durations, and shows you the total YouTube playlist time in hours, minutes, and seconds."
+    q: "What should I paste into the calculator?",
+    a: "Paste a normal YouTube playlist URL or the raw playlist ID. You can add one playlist for a quick total or paste several at once to compare them before choosing what to watch."
   },
   {
-    q: "How long is a YouTube playlist at 1.5x speed?",
-    a: "playlist-time divides the total duration by the playback speed you choose. For example, a 10-hour playlist takes about 6 hours 40 minutes at 1.5x speed. You can also check 1.25x, 1.75x, 2x, or set any custom speed."
+    q: "When should I use a video range?",
+    a: "Use a range when only part of the playlist matters, such as lessons 20 through 80 in a course or the remaining videos after you have already started. The same range can apply to every playlist, or you can override it per playlist."
   },
   {
-    q: "Can I compare multiple playlists at once?",
-    a: "Yes. Paste multiple playlist URLs or IDs separated by a new line, comma, or space. The playlist watch time calculator creates one row per playlist plus a combined totals row so you can compare them side by side."
+    q: "How should I choose a playback speed?",
+    a: "Use the speed you actually watch at. The totals update for common speeds like 1.25x, 1.5x, 1.75x, and 2x, and custom speed helps when a course or lecture series is comfortable at a different pace."
   },
   {
-    q: "Can I calculate only part of a playlist?",
-    a: "Yes. Use the Start and End fields to measure a specific range of videos, for example videos 20 through 80. You can set a default range for all playlists or override it individually."
+    q: "How do I turn the result into a watch plan?",
+    a: "After analysis, enter how many minutes you can watch per day. The planner estimates the number of days, the finish date, and roughly how many videos you need to complete each day."
   },
   {
-    q: "Can I plan how many days a playlist will take?",
-    a: "Yes. After analysis, the daily watch planner estimates days, finish date, and videos per day from your selected playback speed and daily minute goal."
+    q: "Why can the total change later?",
+    a: "Playlist totals can change when the owner adds or removes videos, or when private, deleted, or region-blocked videos are unavailable to the API. Small differences can also come from rounding seconds into readable totals."
   },
   {
-    q: "Can I copy or export playlist duration results?",
-    a: "Yes. Loaded results include copyable summaries and a CSV export with playlist title, channel, selected range, watch time, views, publish date, and YouTube URL."
-  },
-  {
-    q: "What does the Views column represent?",
-    a: "Views are shown as extra context. If available, the number is derived from video-level view counts and summed across the playlist. Watch time is always calculated from video durations, not from views."
-  },
-  {
-    q: "Why might the total differ from what I expect?",
-    a: "Totals can change if a playlist contains unavailable videos (private, deleted, or region-blocked) or if the playlist owner adds or removes videos after your analysis. Minor differences may also come from rounding."
-  },
-  {
-    q: "Is my data stored anywhere?",
-    a: "No account is needed. Playlist IDs are sent to the serverless API so it can query YouTube, but saved calculator state stays in your browser session and is not shared publicly."
+    q: "What happens to the playlists I check?",
+    a: "No account is required. Playlist IDs are sent to the serverless API so it can ask YouTube for video details, while saved calculator state stays in your browser session."
   }
 ];
 
@@ -226,7 +214,7 @@ const jsonLd = {
       </section>
 
       <section id="seo-content" class="overflow-hidden rounded-lg border border-border-dark bg-surface-dark/75 shadow-soft">
-        <ContentAccordion client:idle faq={faq} howItWorks={howItWorks} features={features} comparison={comparison} whyUse={whyUse} />
+        <ContentAccordion client:idle faq={faq} howItWorks={howItWorks} features={features} whyUse={whyUse} />
       </section>
     </main>
   </body>
