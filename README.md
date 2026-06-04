@@ -5,13 +5,6 @@ YouTube playlist watch-time calculator for planning courses, study queues, and l
 [![CI](https://img.shields.io/github/actions/workflow/status/zoypk/playlist-time/ci.yml?branch=main&label=CI&logo=github&style=flat-square)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-2563eb?style=flat-square)](LICENSE)
 
-![Astro](https://img.shields.io/badge/-Astro-24292f?logo=astro&logoColor=ff5d01&style=flat-square)
-![React](https://img.shields.io/badge/-React-24292f?logo=react&logoColor=61dafb&style=flat-square)
-![TypeScript](https://img.shields.io/badge/-TypeScript-24292f?logo=typescript&logoColor=3178c6&style=flat-square)
-![Tailwind CSS](https://img.shields.io/badge/-Tailwind%20CSS-24292f?logo=tailwindcss&logoColor=06b6d4&style=flat-square)
-![Bun](https://img.shields.io/badge/-Bun-24292f?logo=bun&logoColor=fbf0df&style=flat-square)
-![Cloudflare Pages](https://img.shields.io/badge/-Cloudflare%20Pages-24292f?logo=cloudflare&logoColor=f38020&style=flat-square)
-
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
 ![playlist-time first viewport with demo playlist results](docs/playlist-time-first-viewport.png)
@@ -38,6 +31,13 @@ playlist-time is for learners, course planners, students, creators, and anyone m
 - Load deterministic sample rows without calling the YouTube API.
 
 ## Tech Stack
+
+![Astro](https://img.shields.io/badge/-Astro-24292f?logo=astro&logoColor=ff5d01&style=flat-square)
+![React](https://img.shields.io/badge/-React-24292f?logo=react&logoColor=61dafb&style=flat-square)
+![TypeScript](https://img.shields.io/badge/-TypeScript-24292f?logo=typescript&logoColor=3178c6&style=flat-square)
+![Tailwind CSS](https://img.shields.io/badge/-Tailwind%20CSS-24292f?logo=tailwindcss&logoColor=06b6d4&style=flat-square)
+![Bun](https://img.shields.io/badge/-Bun-24292f?logo=bun&logoColor=fbf0df&style=flat-square)
+![Cloudflare Pages](https://img.shields.io/badge/-Cloudflare%20Pages-24292f?logo=cloudflare&logoColor=f38020&style=flat-square)
 
 - Astro 6 for the static site shell and build pipeline.
 - React 19 and TypeScript for the interactive calculator.
