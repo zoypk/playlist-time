@@ -4,7 +4,7 @@ playlist-time is a personal open-source portfolio project. It uses Cloudflare Pa
 
 ## Supported Version
 
-Security fixes apply to the current `master` branch.
+Security fixes apply to the current `main` branch.
 
 ## Reporting Security Issues
 
