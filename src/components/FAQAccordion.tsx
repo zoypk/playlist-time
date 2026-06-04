@@ -14,18 +14,19 @@ export interface FAQAccordionProps {
 
 export function FAQAccordion({ items }: FAQAccordionProps): ReactElement {
   return (
-    <Accordion type="single" collapsible className="mt-3 space-y-2">
-      {items.map((item, index) => (
-        <AccordionItem key={`faq-${index}`} value={item.q} className="bg-background-dark/55">
-          <AccordionTrigger className="px-3 py-2 text-sm font-medium text-gray-100">
-            <h3 className="text-left">{item.q}</h3>
-          </AccordionTrigger>
-          <AccordionContent className="px-3 py-2 text-sm text-warm-muted">
-            {item.a}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-
-    </Accordion>
+    <div className="mt-4">
+      <Accordion type="single" collapsible className="grid gap-2 md:grid-cols-2">
+        {items.map((item, index) => (
+          <AccordionItem key={`faq-${index}`} value={item.q} className="bg-background-dark/45">
+            <AccordionTrigger className="min-h-12 px-3 py-2 text-sm font-medium text-gray-100">
+              <h3 className="text-left">{item.q}</h3>
+            </AccordionTrigger>
+            <AccordionContent className="px-3 py-2 text-sm text-warm-muted">
+              {item.a}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
   );
 }

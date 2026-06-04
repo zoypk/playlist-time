@@ -24,34 +24,57 @@ export interface ContentAccordionProps {
 }
 
 export function ContentAccordion({ faq, howItWorks, features, comparison = [], whyUse }: ContentAccordionProps): ReactElement {
+  const quickChecks = [
+    { label: "Speed math", value: "1x-3x" },
+    { label: "Playlist range", value: "Start-End" },
+    { label: "Output", value: "Copy + CSV" },
+  ];
+
   return (
     <Accordion type="single" collapsible defaultValue="how-it-works">
       <AccordionItem value="how-it-works" className="border-none">
-        <AccordionTrigger className="rounded-t-lg bg-background-dark/70 px-5 py-4 text-sm font-semibold">
-          Calculation guide and FAQ
+        <AccordionTrigger className="rounded-t-lg bg-background-dark/70 px-5 py-4 text-left">
+          <span>
+            <span className="block text-sm font-semibold text-gray-100">Planner notes</span>
+            <span className="mt-1 block text-xs font-medium text-warm-muted">
+              Duration math, range rules, exports, and the common edge cases.
+            </span>
+          </span>
         </AccordionTrigger>
         <AccordionContent className="border-t border-border-dark bg-background-dark/35">
-          <div className="grid gap-8 p-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <section className="max-w-prose">
-              <h2 className="text-sm font-semibold text-primary">What is playlist-time?</h2>
-              <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                playlist-time is a free <strong>YouTube Playlist Length Calculator</strong> that tells you exactly how long any playlist takes to watch. Whether you need to plan study sessions around a lecture series, schedule time for an online course, or simply find out how long a music compilation runs, this tool gives you an instant answer. Enter one or more playlist links and get the <strong>total YouTube playlist time</strong> broken down by playback speed: 1x, 1.25x, 1.5x, 1.75x, or any custom rate you prefer.
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-300">
-                Unlike manually scrolling through every video to add up durations, this <strong>YouTube playlist length calculator</strong> does the math for you in seconds. It also handles partial playlists: set a start and end range to calculate the duration of only the videos you actually plan to watch.
+          <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+            <section className="space-y-5">
+              <div>
+                <p className="font-mono text-xs font-semibold uppercase text-accent">Quick reference</p>
+                <h2 className="mt-2 text-xl font-bold leading-tight text-white">Measure the real watch-time before you start.</h2>
+                <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                  playlist-time is a free <strong>YouTube Playlist Length Calculator</strong> for checking total playlist duration, playback-speed math, selected video ranges, and daily watch plans.
+                </p>
+              </div>
+
+              <dl className="grid grid-cols-3 gap-2">
+                {quickChecks.map((check) => (
+                  <div key={check.label} className="rounded-md border border-border-dark bg-surface-darker/60 px-3 py-3 shadow-inset">
+                    <dt className="text-[11px] font-medium text-warm-muted">{check.label}</dt>
+                    <dd className="mt-1 font-mono text-xs font-bold text-white">{check.value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <p className="rounded-md border border-border-dark bg-accent-soft/35 p-4 text-sm leading-relaxed text-gray-200">
+                {whyUse}
               </p>
             </section>
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               <section>
-                <h2 className="text-sm font-semibold text-primary">How to calculate YouTube playlist duration</h2>
-                <p className="mt-3 text-sm text-gray-300">
-                  Use this <strong>online playlist calculator</strong> to convert playlist length into real watch-time estimates in just a few steps:
-                </p>
-                <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-gray-300">
+                <h2 className="text-sm font-semibold text-primary">How the calculation works</h2>
+                <ol className="mt-4 grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
                   {howItWorks.map((step, i) => (
-                    <li key={i}>
-                      <span className="font-medium text-gray-100">{step.title}</span>: {step.detail}
+                    <li key={i} className="rounded-md border border-border-dark bg-background-dark/45 p-3">
+                      <span className="font-mono text-xs font-bold text-accent">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="mt-2 block font-medium text-gray-100">{step.title}</span>
+                      <span className="mt-1 block leading-relaxed text-warm-muted">{step.detail}</span>
                     </li>
                   ))}
                 </ol>
@@ -61,11 +84,12 @@ export function ContentAccordion({ faq, howItWorks, features, comparison = [], w
               </section>
 
               <section>
-                <h2 className="text-sm font-semibold text-primary">Features and planning tools</h2>
-                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-gray-300">
+                <h2 className="text-sm font-semibold text-primary">Planning tools included</h2>
+                <ul className="mt-4 grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
                   {features.map((feat, i) => (
-                    <li key={i}>
-                      <span className="font-medium text-gray-100">{feat.title}</span>: {feat.detail}
+                    <li key={i} className="rounded-md bg-surface-darker/40 px-3 py-2">
+                      <span className="font-medium text-gray-100">{feat.title}</span>
+                      <span className="block text-warm-muted">{feat.detail}</span>
                     </li>
                   ))}
                 </ul>
@@ -73,11 +97,12 @@ export function ContentAccordion({ faq, howItWorks, features, comparison = [], w
 
               {comparison.length > 0 && (
                 <section>
-                  <h2 className="text-sm font-semibold text-primary">What makes this YouTube playlist calculator different?</h2>
-                  <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-gray-300">
+                  <h2 className="text-sm font-semibold text-primary">Where it helps most</h2>
+                  <ul className="mt-4 grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
                     {comparison.map((item, i) => (
-                      <li key={i}>
-                        <span className="font-medium text-gray-100">{item.title}</span>: {item.detail}
+                      <li key={i} className="rounded-md border border-border-dark/75 bg-background-dark/35 px-3 py-2">
+                        <span className="font-medium text-gray-100">{item.title}</span>
+                        <span className="block text-warm-muted">{item.detail}</span>
                       </li>
                     ))}
                   </ul>
@@ -85,12 +110,7 @@ export function ContentAccordion({ faq, howItWorks, features, comparison = [], w
               )}
 
               <section>
-                <h2 className="text-sm font-semibold text-primary">Why use this playlist watch time calculator?</h2>
-                <p className="mt-3 text-sm leading-relaxed text-gray-300">{whyUse}</p>
-              </section>
-
-              <section>
-                <h2 className="text-sm font-semibold text-primary">Frequently asked questions</h2>
+                <h2 className="text-sm font-semibold text-primary">Common playlist time questions</h2>
                 <FAQAccordion items={faq} />
               </section>
             </div>
