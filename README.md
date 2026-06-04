@@ -3,8 +3,14 @@
 YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
 [![CI](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/zoypk/playlist-time/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/zoypk/playlist-time/actions/workflows/codeql.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
+
+![Astro](https://img.shields.io/badge/Astro-6-FF5D01?logo=astro&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Bun](https://img.shields.io/badge/Bun-runtime-000000?logo=bun&logoColor=white)
+![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-functions-F38020?logo=cloudflare&logoColor=white)
 
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
