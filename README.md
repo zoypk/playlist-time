@@ -152,14 +152,6 @@ bun run deploy:pages
 
 Production secrets should be configured in Cloudflare Pages, not committed to the repository.
 
-## Screenshots
-
-- Live app: [playlist-time.pages.dev](https://playlist-time.pages.dev)
-- Sample data: [playlist-time.pages.dev/?demo=1](https://playlist-time.pages.dev/?demo=1)
-- Desktop screenshot: [docs/playlist-time-first-viewport.png](docs/playlist-time-first-viewport.png)
-- Mobile screenshot: [docs/playlist-time-mobile.png](docs/playlist-time-mobile.png)
-- Table detail screenshot: [docs/playlist-time-sample-rows.png](docs/playlist-time-sample-rows.png)
-
 ## Known Limits
 
 - Results depend on YouTube Data API availability, quota, and playlist visibility.
