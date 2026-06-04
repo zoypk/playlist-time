@@ -12,7 +12,7 @@ import type {
   PlaylistApiDto,
 } from "./types";
 import { Button } from "./ui/button";
-import { Card, CardHeader } from "./ui/card";
+import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Toaster } from "./ui/sonner";
@@ -460,20 +460,17 @@ function AppInner(): React.ReactElement {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border-border-contrast/70 bg-surface-dark/90 shadow-lift">
-        <CardHeader className="bg-[linear-gradient(180deg,rgba(26,36,40,0.94),rgba(8,12,14,0.92))] p-4 md:p-5">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <Card className="motion-panel-in overflow-hidden border-border-contrast/70 bg-surface-dark/90 shadow-lift">
+        <div className="bg-[linear-gradient(180deg,rgba(26,36,40,0.94),rgba(8,12,14,0.92))] p-4 md:p-5">
+          <div className="mb-4">
             <div>
               <p className="text-sm font-semibold text-white">Add playlists to compare</p>
               <p className="mt-1 text-xs text-warm-muted">Paste one per line, comma-separated links, or raw playlist IDs.</p>
             </div>
-            <span className="rounded-md border border-accent/25 bg-accent-soft/60 px-2.5 py-1 font-mono text-[11px] font-semibold text-accent">
-              Session only
-            </span>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-            <div className="min-w-0 flex-1">
-              <label className="sr-only" htmlFor="playlist-input">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <label className="mb-2 text-xs font-semibold text-warm-muted" htmlFor="playlist-input">
                 Playlist URLs or IDs
               </label>
               <Textarea
@@ -489,7 +486,7 @@ function AppInner(): React.ReactElement {
                   }
                 }}
                 placeholder="Paste YouTube playlist URLs or IDs..."
-                className="h-28 resize-none border-border-contrast/60 bg-background-dark/80 font-mono leading-relaxed"
+                className="min-h-32 flex-1 resize-none border-border-contrast/60 bg-background-dark/80 font-mono leading-relaxed focus-visible:border-accent/45 lg:h-auto"
                 aria-describedby="playlist-input-hint"
               />
               <p id="playlist-input-hint" className="sr-only">
@@ -497,8 +494,8 @@ function AppInner(): React.ReactElement {
               </p>
             </div>
 
-            <div className="w-full rounded-lg border border-border-dark bg-background-dark/70 p-3 shadow-inset lg:w-[25rem]">
-              <div className="mb-3">
+            <div className="flex w-full min-h-32 flex-col justify-between gap-3 rounded-lg border border-border-dark bg-background-dark/70 p-3 shadow-inset transition-colors duration-200 hover:border-border-contrast/70 focus-within:border-accent/45 lg:w-[25rem]">
+              <div>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="cursor-help text-xs font-semibold text-warm-muted">Default range</span>
@@ -557,7 +554,7 @@ function AppInner(): React.ReactElement {
               </Tooltip>
             </div>
           </div>
-        </CardHeader>
+        </div>
       </Card>
 
       {rows.length === 0 && (
