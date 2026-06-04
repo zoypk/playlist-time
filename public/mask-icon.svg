@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="playlist-time mask icon">
-  <rect width="512" height="512" rx="96" fill="#000" />
-  <circle cx="256" cy="256" r="160" fill="#000" />
-  <path d="M228 190L332 256L228 322Z" fill="#fff" />
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 180 180" role="img" aria-label="playlist-time mask icon">
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 43H132" stroke-width="13" />
+    <path d="M40 73H121" stroke-width="13" />
+    <path d="M40 103H108" stroke-width="13" />
+    <rect x="27" y="121" width="126" height="46" rx="23" fill="#000" stroke="none" />
+    <path d="M52 132L75 144L52 156Z" fill="#000" stroke="none" />
+    <path d="M91 144H113" stroke-width="8" />
+    <path d="M130 136V146L138 152" stroke-width="6" />
+  </g>
 </svg>

@@ -2,15 +2,15 @@
 
 YouTube playlist watch-time calculator for planning courses, study queues, and long playlists. Paste playlist URLs or IDs, compare totals at different playback speeds, narrow the calculation to a video range, plan daily progress, and export results.
 
-[![CI](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
-[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/zoypk/playlist-time/ci.yml?branch=main&label=CI&logo=github&style=flat-square)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-2563eb?style=flat-square)](LICENSE)
 
-![Astro](https://img.shields.io/badge/Astro-6-FF5D01?logo=astro&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)
-![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![Bun](https://img.shields.io/badge/Bun-runtime-000000?logo=bun&logoColor=white)
-![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-functions-F38020?logo=cloudflare&logoColor=white)
+![Astro](https://img.shields.io/badge/-Astro-24292f?logo=astro&logoColor=ff5d01&style=flat-square)
+![React](https://img.shields.io/badge/-React-24292f?logo=react&logoColor=61dafb&style=flat-square)
+![TypeScript](https://img.shields.io/badge/-TypeScript-24292f?logo=typescript&logoColor=3178c6&style=flat-square)
+![Tailwind CSS](https://img.shields.io/badge/-Tailwind%20CSS-24292f?logo=tailwindcss&logoColor=06b6d4&style=flat-square)
+![Bun](https://img.shields.io/badge/-Bun-24292f?logo=bun&logoColor=fbf0df&style=flat-square)
+![Cloudflare Pages](https://img.shields.io/badge/-Cloudflare%20Pages-24292f?logo=cloudflare&logoColor=f38020&style=flat-square)
 
 [Live demo](https://playlist-time.pages.dev) | [Sample data view](https://playlist-time.pages.dev/?demo=1)
 
@@ -125,7 +125,7 @@ bun run build
 
 Current tests cover playlist input parsing, range normalization, API key parsing, cache-key generation, and bounded concurrency helpers. `bun run check` validates Astro and TypeScript, and `bun run build` verifies the production bundle.
 
-There is no browser end-to-end suite yet; that would be the next useful test layer.
+One demo smoke test exists; fuller E2E coverage is future work.
 
 ## API Endpoints
 
