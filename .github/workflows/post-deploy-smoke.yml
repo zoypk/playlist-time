@@ -5,11 +5,6 @@ on:
     types:
       - completed
   workflow_dispatch:
-    inputs:
-      base_url:
-        description: Pages deployment URL to smoke test
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -40,22 +35,8 @@ jobs:
           ref: ${{ github.event.check_run.head_sha || github.sha }}
 
       - name: Resolve smoke target
-        env:
-          CHECK_RUN_SUMMARY: ${{ github.event.check_run.output.summary }}
-          WORKFLOW_DISPATCH_BASE_URL: ${{ inputs.base_url }}
         run: |
-          if [ -n "$WORKFLOW_DISPATCH_BASE_URL" ]; then
-            smoke_base_url="$WORKFLOW_DISPATCH_BASE_URL"
-          else
-            smoke_base_url="$(printf '%s' "$CHECK_RUN_SUMMARY" | grep -Eo 'https://[A-Za-z0-9.-]+\.playlist-time\.pages\.dev' | head -n 1)"
-          fi
-
-          if [ -z "$smoke_base_url" ]; then
-            echo "Cloudflare Pages check run did not expose a playlist-time.pages.dev URL." >&2
-            exit 1
-          fi
-
-          echo "SMOKE_BASE_URL=${smoke_base_url%/}" >> "$GITHUB_ENV"
+          echo "SMOKE_BASE_URL=https://playlist-time.pages.dev" >> "$GITHUB_ENV"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
