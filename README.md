@@ -129,7 +129,7 @@ bun run build
 
 Current tests cover playlist input parsing, range normalization, API key parsing, cache-key generation, and bounded concurrency helpers. There is also a demo smoke test, but fuller E2E coverage is still a good next step.
 
-Static and dynamic analysis evidence for release readiness lives in GitHub Actions: CI, CodeQL, post-deploy smoke, release, and OWASP ZAP baseline workflows. The OpenSSF badge evidence map is in [docs/openssf-badge-evidence.md](docs/openssf-badge-evidence.md).
+Static and dynamic analysis evidence for release readiness lives in GitHub Actions: CI, GitHub CodeQL default setup, post-deploy smoke, release, and OWASP ZAP baseline workflows. The OpenSSF badge evidence map is in [docs/openssf-badge-evidence.md](docs/openssf-badge-evidence.md).
 
 ## API
 

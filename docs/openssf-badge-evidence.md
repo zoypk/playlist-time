@@ -97,10 +97,10 @@ Project URLs:
 
 | Criterion | Suggested status | Evidence |
 | --- | --- | --- |
-| `static_analysis` | Met | `.github/workflows/codeql.yml` runs CodeQL for JavaScript/TypeScript before major production releases and on pull requests. |
+| `static_analysis` | Met | GitHub CodeQL default setup runs JavaScript/TypeScript code scanning for the repository. |
 | `static_analysis_common_vulnerabilities` | Met | CodeQL includes JavaScript/TypeScript security queries for common vulnerability patterns. |
 | `static_analysis_fixed` | Met | `SECURITY.md` and CI policy require confirmed medium-or-higher exploitable findings to be fixed. |
-| `static_analysis_often` | Met | CodeQL runs on pull requests, pushes, release tags, and a weekly schedule. |
+| `static_analysis_often` | Met | GitHub CodeQL default setup runs code scanning automatically for the repository. |
 | `dynamic_analysis` | Met | `.github/workflows/dynamic-analysis.yml` runs OWASP ZAP Baseline against the public demo route; README release guidance says to run it before major production releases. |
 | `dynamic_analysis_unsafe` | N/A | The project is TypeScript/JavaScript/Astro and does not include C/C++ or another memory-unsafe implementation language. |
 | `dynamic_analysis_enable_assertions` | Met | Bun and Playwright tests use runtime assertions in test mode before release. |
