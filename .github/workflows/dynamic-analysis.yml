@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: ZAP baseline scan
-        uses: zaproxy/action-baseline@6c5a007541891231cd9e0ddec25d4f25c59c9874 # v0.15.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: "https://playlist-time.pages.dev/?demo=1"
           allow_issue_writing: false
