@@ -1,0 +1,85 @@
+name: Post-deploy smoke
+
+on:
+  check_run:
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-deploy-smoke-${{ github.event.check_run.head_sha || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  demo-smoke:
+    name: Demo route smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.check_run.status == 'completed' &&
+        github.event.check_run.conclusion == 'success' &&
+        github.event.check_run.name == 'Cloudflare Pages' &&
+        github.event.check_run.app.name == 'Cloudflare Workers and Pages' &&
+        github.event.check_run.pull_requests[0] == null
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.check_run.head_sha || github.sha }}
+
+      - name: Resolve smoke target
+        run: |
+          echo "SMOKE_BASE_URL=https://playlist-time.pages.dev" >> "$GITHUB_ENV"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: |
+          echo "::group::bun install"
+          trap 'echo "::endgroup::"' EXIT
+          bun install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Chromium
+        run: |
+          echo "::group::Install Playwright Chromium"
+          trap 'echo "::endgroup::"' EXIT
+          bunx playwright install --with-deps chromium
+
+      - name: Smoke test demo route
+        run: |
+          echo "::group::Run demo smoke"
+          trap 'echo "::endgroup::"' EXIT
+          bun run smoke:demo
+
+      - name: Add job summary
+        if: always()
+        run: |
+          echo "### Post-deploy smoke" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Target: ${SMOKE_BASE_URL}/?demo=1" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Command: \`bun run smoke:demo\`" >> "$GITHUB_STEP_SUMMARY"
