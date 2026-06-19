@@ -6,6 +6,8 @@ It works with playlist URLs or raw playlist IDs. You can see the full playlist l
 
 [![CI](https://img.shields.io/github/actions/workflow/status/zoypk/playlist-time/ci.yml?branch=main&label=CI&logo=github&style=flat-square)](https://github.com/zoypk/playlist-time/actions/workflows/ci.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-2563eb?style=flat-square)](LICENSE)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13306/badge)](https://www.bestpractices.dev/projects/13306)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/13306/baseline)](https://www.bestpractices.dev/projects/13306)
 
 ![Astro](https://img.shields.io/badge/-Astro-24292f?logo=astro&logoColor=ff5d01&style=flat-square)
 ![React](https://img.shields.io/badge/-React-24292f?logo=react&logoColor=61dafb&style=flat-square)
