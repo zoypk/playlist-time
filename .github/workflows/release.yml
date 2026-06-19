@@ -1,31 +1,29 @@
-name: CI
+name: Release
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  checks:
-    name: Bun checks
+  release:
+    name: Build and publish release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -58,10 +56,20 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Add job summary
-        if: always()
+      - name: Generate release title
+        id: release-title
         run: |
-          echo "### CI baseline" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Install: \`bun install --frozen-lockfile\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Audit: \`bun audit\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Checks: \`bun run check\`, \`bun test\`, \`bun run build\`" >> "$GITHUB_STEP_SUMMARY"
+          title="$(node scripts/release-title.mjs "${GITHUB_REF_NAME}")"
+          echo "title=${title}" >> "$GITHUB_OUTPUT"
+          echo "### Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${GITHUB_REF_NAME}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Title: ${title}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${{ steps.release-title.outputs.title }}" \
+            --generate-notes \
+            --verify-tag

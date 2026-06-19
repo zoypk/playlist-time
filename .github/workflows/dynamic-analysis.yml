@@ -1,0 +1,29 @@
+name: Dynamic analysis
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * 2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dynamic-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "https://playlist-time.pages.dev/?demo=1"
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-baseline
+          cmd_options: "-a"
