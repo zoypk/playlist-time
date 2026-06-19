@@ -25,10 +25,24 @@ function refExists(ref) {
 }
 
 function previousTag(currentTag) {
+  const parseTag = (candidate) => {
+    const match = /^v(\d+)\.(\d+)\.(\d+)$/.exec(candidate);
+    return match ? match.slice(1).map(Number) : null;
+  };
+
+  const compareTags = (left, right) =>
+    left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
+
+  const current = parseTag(currentTag);
+
   const tags = git(["tag", "--list", "v[0-9]*.[0-9]*.[0-9]*", "--sort=-v:refname"])
     .split(/\r?\n/)
     .filter(Boolean)
-    .filter((candidate) => candidate !== currentTag);
+    .filter((candidate) => candidate !== currentTag)
+    .filter((candidate) => {
+      const parsed = parseTag(candidate);
+      return current && parsed && compareTags(parsed, current) < 0;
+    });
 
   return tags[0] || "";
 }
