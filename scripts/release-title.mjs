@@ -75,7 +75,7 @@ function releaseFocus(files) {
     },
     {
       label: "Cloudflare deployment",
-      patterns: [/^wrangler\.jsonc$/, /^astro\.config\.mjs$/, /^\.github\/workflows\/post-deploy-smoke\.yml$/],
+      patterns: [/^wrangler\.jsonc$/, /^astro\.config\.mjs$/],
     },
     {
       label: "CI and release automation",
